@@ -1,0 +1,176 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* DATE tag on */
+#cmakedefine DATE "@DATE@"
+
+/* Debug tag on */
+#cmakedefine DEBUG @DEBUG@
+
+/* EVOLVE tag on */
+#cmakedefine EVOLVE
+
+/* Define to 1 if you don't have 'vprintf' but do have '_doprnt.' */
+#ifndef HAVE_DOPRNT
+#cmakedefine HAVE_DOPRNT "@HAVE_DOPRNT@"
+#endif
+
+/* Define to 1 if you have the <float.h> header file. */
+#ifndef HAVE_FLOAT_H
+#cmakedefine HAVE_FLOAT_H
+#endif
+
+/* Define to 1 if you have the 'floor' function. */
+#ifndef HAVE_FLOOR
+#cmakedefine HAVE_FLOOR
+#endif
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#ifndef HAVE_INTTYPES_H
+#cmakedefine HAVE_INTTYPES_H
+#endif
+
+/* Define to 1 if you have the 'm' library (-lm). */
+#ifndef HAVE_LIBM
+#cmakedefine HAVE_LIBM
+#endif
+
+/* Define to 1 if you have the 'pow' function. */
+#ifndef HAVE_POW
+#cmakedefine HAVE_POW
+#endif
+
+/* Define to 1 if you have the 'rint' function. */
+#ifndef HAVE_RINT
+#cmakedefine HAVE_RINT
+#endif
+
+/* Define to 1 if you have the 'sqrt' function. */
+#ifndef HAVE_SQRT
+#cmakedefine HAVE_SQRT
+#endif
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#ifndef HAVE_STDINT_H
+#cmakedefine HAVE_STDINT_H
+#endif
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#ifndef HAVE_STDIO_H
+#cmakedefine HAVE_STDIO_H
+#endif
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#ifndef HAVE_STDLIB_H
+#cmakedefine HAVE_STDLIB_H
+#endif
+
+/* Define to 1 if you have the 'strchr' function. */
+#ifndef HAVE_STRCHR
+#cmakedefine HAVE_STRCHR
+#endif
+
+/* Define to 1 if you have the <strings.h> header file. */
+#ifndef HAVE_STRINGS_H
+#cmakedefine HAVE_STRINGS_H
+#endif
+
+/* Define to 1 if you have the <string.h> header file. */
+#ifndef HAVE_STRING_H
+#cmakedefine HAVE_STRING_H
+#endif
+
+/* Define to 1 if you have the 'strstr' function. */
+#ifndef HAVE_STRSTR
+#cmakedefine HAVE_STRSTR
+#endif
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#ifndef HAVE_SYS_STAT_H
+#cmakedefine HAVE_SYS_STAT_H
+#endif
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#ifndef HAVE_SYS_TYPES_H
+#cmakedefine HAVE_SYS_TYPES_H
+#endif
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#ifndef HAVE_UNISTD_H
+#cmakedefine HAVE_UNISTD_H
+#endif
+
+/* Define to 1 if you have the 'vprintf' function. */
+#ifndef HAVE_VPRINTF
+#cmakedefine HAVE_VPRINTF
+#endif
+
+/* MPI tag on */
+// #cmakedefine MPI
+
+/* Name of package */
+#cmakedefine PACKAGE "@PACKAGE@"
+
+/* Define to the address where bug reports for this package should be sent. */
+#cmakedefine PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
+
+/* Define to the full name of this package. */
+#cmakedefine PACKAGE_NAME "@PACKAGE_NAME@"
+
+/* Define to the full name and version of this package. */
+#cmakedefine PACKAGE_STRING "@PACKAGE_STRING@"
+
+/* Define to the one symbol short name of this package. */
+#cmakedefine PACKAGE_TARNAME "@PACKAGE_TARNAME@"
+
+/* Define to the home page for this package. */
+#cmakedefine PACKAGE_URL "@PACKAGE_URL@"
+
+/* Define to the version of this package. */
+#cmakedefine PACKAGE_VERSION "@PACKAGE_VERSION@"
+
+// /* PHYML tag on */
+// #cmakedefine PHYML
+
+// /* PHYREX tag on */
+// #cmakedefine PHYREX
+
+// /* PHYREXSIM tag on */
+// #cmakedefine PHYREXSIM
+
+// /* PHYTIME tag on */
+// #cmakedefine PHYTIME
+
+// /* RF tag on */
+// #cmakedefine RF
+
+// /* RWRAP tag on */
+// #cmakedefine RWRAP
+
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
+// #cmakedefine STDC_HEADERS
+
+/* TEST tag on */
+// #cmakedefine TEST
+
+/* Unix tag on */
+#cmakedefine UNIX @UNIX@
+
+/* Version number of package */
+#cmakedefine VERSION "@VERSION@"
+
+/* WIN32 tag on */
+#cmakedefine WIN32 @WIN32@
+
+/* Define to empty if 'const' does not conform to ANSI C. */
+#undef const
+
+/* Define to '__inline__' or '__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
+#undef inline
+#endif
+
+/* Define as 'unsigned int' if <stddef.h> doesn't define. */
+#undef size_t
