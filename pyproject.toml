@@ -1,0 +1,58 @@
+[build-system]
+requires = ['scikit-build-core', 'cython ~=3.0']
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pyphyml"
+version = "0.1.0-dev.1"
+description = "Cython bindings and Python interface to PhyML, ."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "COPYING" }
+authors = [
+  { name = "Martin Larralde", email = "martin.larralde@embl.de" },
+]
+
+[tool.scikit-build]
+build-dir = "build/{build_type}"
+# wheel.py-api = "cp311"
+editable.rebuild = true
+editable.verbose = false
+sdist.include = [
+    "src",
+    "patches",
+    "include",
+    "vendor/phyml/src",
+]
+sdist.exclude = [
+    "build",
+    "backup",
+    "docs",
+    "dist",
+    "wheelhouse",
+]
+
+[[tool.scikit-build.overrides]]
+if.state = "editable"
+cmake.build-type = "Debug"
+
+[[tool.scikit-build.overrides]]
+if.env.READTHEDOCS = "True"
+cmake.build-type = "Debug"
+
+[[tool.scikit-build-overrides]]
+if.env.SCCACHE = true
+cmake.define.CMAKE_C_COMPILER_LAUNCHER = "sccache"
+cmake.define.CMAKE_CXX_COMPILER_LAUNCHER = "sccache"
+
+[[tool.scikit-build-overrides]]
+if.env.MOLD = true
+cmake.define.CMAKE_LINKER_TYPE = "mold"
+
+[tool.cibuildwheel]
+before-build = "pip install scikit-build-core cython"
+build-frontend = { name = "pip", args = ["--no-build-isolation"] }
+build-verbosity = 1
+free-threaded-support = false
+test-command = "python -m unittest pyphyml.tests -v"
+test-extras = ["test"]
