@@ -1,0 +1,3 @@
+[submodule "vendor/phyml"]
+	path = vendor/phyml
+	url = https://github.com/stephaneguindon/phyml
