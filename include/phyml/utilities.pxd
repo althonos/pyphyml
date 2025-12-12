@@ -8,6 +8,12 @@ cdef extern from "utilities.h" nogil:
         SPR_MOVE = 1
         BEST_OF_NNI_AND_SPR = 2
 
+    cdef enum t_type:
+        NT = 0
+        AA = 1
+        GENERIC = 2
+        UNDEFINED = -1
+
     # double-precision
     ctypedef double phydbl
     cdef phydbl LOG(phydbl)
@@ -579,9 +585,9 @@ cdef extern from "utilities.h" nogil:
 
         # char *clade_list_file;
 
-        # int datatype;         /*! 0->DNA, 1->AA */
-        # int print_boot_trees; /*! =1 if the bootstrapped trees are printed in output
-        #                         */
+        int datatype         # 0->DNA, 1->AA
+        bint print_boot_trees;  # =1 if the bootstrapped trees are printed in output
+        
         # int   out_stats_file_open_mode; /*! opening file mode for statistics file */
         # int   out_tree_file_open_mode;  /*! opening file mode for tree file */
         int   n_data_sets              # number of data sets to be analysed
