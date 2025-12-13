@@ -142,6 +142,7 @@ set(PHYML_SOURCES
     # tiporder.c
     invitee.h
     # invitee.c
+    sse2neon.h
 )
 
 foreach(_file IN ITEMS ${PHYML_SOURCES})
