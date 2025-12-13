@@ -144,6 +144,7 @@ cdef class Alignment:
                         self._data[i] = self._data[j]
                         self._data[j] = data_buff
 
+# --- CompressedAlignment ------------------------------------------------------
 
 cdef class CompressedAlignment:
     cdef t_calign* _data
@@ -295,6 +296,46 @@ cdef class TreeBuilder:
 
     # ---
 
+    cdef t_tree* _bootstrap(
+        self,
+        t_calign* cdata,
+        t_mod* mod,
+        t_option* io,
+        char* most_likely_tree,
+    ):
+        cdef t_tree* dum
+
+        # FIXME: Move bootstrap to another post-process function?
+        # Launch bootstrap analysis
+        if io.do_boot or io.do_tbe:
+            if not io.quiet:
+                PhyML_Printf("\n\n. Launch bootstrap analysis on the most likely tree...")
+            most_likely_tree = phyml.utilities.Bootstrap_From_String(most_likely_tree, cdata, mod, io)
+            PhyML_Printf("\n\n. Completed the bootstrap analysis succesfully.")
+            fflush(NULL)
+        elif io.ratio_test != 0.0:
+            # Launch aLRT
+            most_likely_tree = phyml.utilities.aLRT_From_String(most_likely_tree, cdata, mod, io)
+
+        # Print the most likely tree in the output file
+        if not io.quiet:
+            PhyML_Printf("\n\n. Printing the most likely tree in file '%s'.", phyml.utilities.Basename(io.out_tree_file))
+        if io.n_data_sets == 1:
+            if io.fp_out_tree is not NULL:
+                rewind(io.fp_out_tree)
+
+        # Recover most likely tree and add removed duplicate sequences
+        # FIXME: avoid serialization / deserialization?
+        dum      = phyml.io.Read_Tree(&most_likely_tree)
+        dum.data = cdata
+        dum.mod  = mod
+        dum.io   = io
+        phyml.utilities.Connect_CSeqs_To_Nodes(cdata, io, dum)
+        phyml.utilities.Insert_Duplicates(dum)
+        phyml.free.Free(most_likely_tree)
+
+        return dum
+
     cpdef Result build(
         self,
         Alignment alignment,
@@ -321,14 +362,13 @@ cdef class TreeBuilder:
         cdef time_t    time_beg
         cdef time_t    time_end
         cdef phydbl    best_lnL                 = phyml.utilities.UNLIKELY
-        cdef char*     s
         cdef char*     most_likely_tree         = NULL
         cdef bint      orig_random_input_tree
 
         cdef Tree                out_tree
         cdef CompressedAlignment out_compressed
 
-        # Validate alignment
+        # Validate alignmentphyml.utilities.Connect_CSeqs_To_Nodes
         if alignment is None:
             raise TypeError("expected Alignment, found None")
         assert alignment._data is not NULL
@@ -357,7 +397,6 @@ cdef class TreeBuilder:
         # else:
         io.n_trees = 1
 
-        #
         # if io.n_trees == 0 and io.in_tree == 2:
         #     raise ValueError("invalid format of input tree")
 
@@ -554,43 +593,10 @@ cdef class TreeBuilder:
                 phyml.free.Free_Tree_Lk(tree)
                 phyml.free.Free_Tree(tree)
 
-            # FIXME: Move bootstrap to another post-process function?
-            # Launch bootstrap analysis
-            if io.do_boot or io.do_tbe:
-                if not io.quiet:
-                    PhyML_Printf("\n\n. Launch bootstrap analysis on the most likely tree...")
-                most_likely_tree = phyml.utilities.Bootstrap_From_String(most_likely_tree, cdata, mod, io)
-                PhyML_Printf("\n\n. Completed the bootstrap analysis succesfully.")
-                fflush(NULL)
-            elif io.ratio_test != 0.0:
-                # Launch aLRT
-                most_likely_tree = phyml.utilities.aLRT_From_String(most_likely_tree, cdata, mod, io)
-
-            # Print the most likely tree in the output file
-            if not io.quiet:
-                PhyML_Printf("\n\n. Printing the most likely tree in file '%s'.", phyml.utilities.Basename(io.out_tree_file));
-            if io.n_data_sets == 1:
-                if io.fp_out_tree is not NULL:
-                    rewind(io.fp_out_tree)
-
-            # Recover most likely tree and add removed duplicate sequences
-            # FIXME: avoid serialization / deserialization?
-            dum      = phyml.io.Read_Tree(&most_likely_tree)
-            dum.data = cdata
-            dum.mod  = mod
-            dum.io   = io
-            phyml.utilities.Connect_CSeqs_To_Nodes(cdata, io, dum)
-            phyml.utilities.Insert_Duplicates(dum)
-            phyml.free.Free(most_likely_tree)
+            # Run bootstrap
+            dum = self._bootstrap(cdata, mod, io, most_likely_tree)
             most_likely_tree = phyml.io.Write_Tree(dum)
             phyml.free.Free_Tree(dum)
-
-            # NOTE: Unused (I/O)
-            # if io.fp_out_tree is not NULL:
-            #     PhyML_Fprintf(io.fp_out_tree, "%s\n", most_likely_tree)
-            # if io.n_trees > 1 and io.n_data_sets > 1:
-            #     break
-
 
         # Recover the most likely tree
         if most_likely_tree is not NULL:
