@@ -219,21 +219,39 @@ cdef class ModelPrototype:
             phyml.free.Free_Model_Basic(self._mod)
 
     @classmethod
-    def from_name(cls, str name, int rate_categories = 4):
-        """Create a new substitution model factory
+    def from_name(
+        cls,
+        str name,
+        *,
+        int rate_categories = 4,
+        object kappa = None,
+        object lambda_ = None,
+        object alpha = None,
+    ):
+        """Create a new substitution model prototype.
         """
         cdef ModelPrototype model
-        
-        if rate_categories < 1:
-            raise ValueError("The number of rate categories must be a positive integer")
 
+        # validate parameters
+        if rate_categories < 1:
+            raise ValueError("number of rate categories must be a positive integer")
+        if name not in _NT_MODELS and name not in _AA_MODELS:
+            raise ValueError(f"unknown model: {name!r}")
+        if alpha is not None and alpha < 1e-10:
+            raise ValueError(f"alpha must be >=1E-10 (got {alpha!r})")
+        if kappa is not None and kappa < 0:
+            raise ValueError(f"kappa must be positive (got {kappa!r})")
+
+        # allocate data
         model = ModelPrototype.__new__(ModelPrototype)
         model._mod = phyml.make.Make_Model_Basic()
         if model._mod is NULL:
             raise MemoryError
 
+        # initialize PhyML defaults
         phyml.utilities.Set_Defaults_Model(model._mod)
 
+        # set model kind and name
         if name in _NT_MODELS:
             model._type = <int> t_type.NT
             model._mod.ns = 4
@@ -242,21 +260,40 @@ cdef class ModelPrototype:
             raise NotImplementedError
         else:
             raise ValueError(name)
-        
         phyml.utilities.Set_Model_Name(model._mod)
-        
+
+        # set alpha value
+        if alpha is None:
+            io.mod.ras.alpha.v = 1.0
+            io.mod.ras.alpha.optimize = True
+        else:
+            io.mod.ras.alpha.v = self._alpha
+            io.mod.ras.alpha.optimize = False
+
+        # set lambda and kappa values
+        if model._mod.whichmodel != t_whichmodel.JC69 and model._mod.whichmodel != t_whichmodel.F81 and model._mod.whichmodel != t_whichmodel.GTR:
+            if kappa is None:
+                model._mod.kappa.v = 4.0
+                model._mod.kappa.optimize = True
+                if model._mod.whichmodel == t_whichmodel.TN93:
+                    model._mod.lambda_.optimize = True
+            else:
+                model._mod.kappa.optimize = False
+                model._mod.lambda_.optimize = False
+                if model._mod.whichmodel == t_whichmodel.TN93:
+                    raise NotImplementedError
+                else:
+                    model._mod.kappa.v = kappa
+        if model._mod.whichmodel != t_whichmodel.K80 and model._mod.whichmodel != t_whichmodel.HKY85 and model._mod.whichmodel != t_whichmodel.F84 and model._mod.whichmodel != t_whichmodel.TN93:
+            model._mod.kappa.optimize = False
+
+        # set number of rate categories
         model._mod.ras.n_catg = rate_categories
         if rate_categories == 1:
             model._mod.ras.alpha.optimize = False
 
-        if model._mod.whichmodel != t_whichmodel.JC69 and model._mod.whichmodel != t_whichmodel.F81 and model._mod.whichmodel != t_whichmodel.GTR:
-            model._mod.kappa.v = 4.0
-            model._mod.kappa.optimize = True
-            if model._mod.whichmodel == t_whichmodel.TN93:
-                model._mod.lambda_.optimize = True
-
+        # finish initialization
         phyml.make.Make_Model_Complete(model._mod)
-
         return model
 
 
@@ -270,8 +307,8 @@ cdef class Result:
     cdef readonly phydbl              log_likelihood
 
     def __init__(
-        self, 
-        Tree tree not None, 
+        self,
+        Tree tree not None,
         Alignment alignment not None,
         CompressedAlignment compressed not None,
         phydbl log_likelihood,
@@ -285,50 +322,27 @@ cdef class Result:
 cdef class TreeBuilder:
     cdef readonly ModelPrototype model
     cdef readonly int            seed
-    cdef          float          _alpha
 
     def __init__(
         self,
         *,
         int seed = 0,
-        object alpha = 1.0,
-        object model = "HKY85",
+        ModelPrototype model = None,
     ):
         """Create a new `TreeBuilder` with the given parameters.
 
         Keyword Arguments:
             seed (`int`): The seed to initialize the random number generator
-                with. If a negative number is given, the seed will be 
+                with. If a negative number is given, the seed will be
                 initialized using the system clock.
-            alpha (`float` or `None`): Value of the Gamma distribution shape 
-                parameter. Can be a fixed positive value, or `None` to get the 
-                maximum likelihood estimate.
+            model (`ModelPrototype` or `None`): The substitution model
+                parameters to use. Pass `None` to use the default *HKY85*
+                (for nucleotide) or *LG* (for protein) models with the
+                transition/transversion ratio estimated by maximum likelihood.
 
         """
         self.seed = seed
-        self.alpha = alpha
-
-        if isinstance(model, str):
-            self.model = ModelPrototype.from_name(model)
-        else:
-            self.model = model
-
-    @property
-    def alpha(self):
-        """`float` or `None`: The Gamma distribution shape parameter.
-        """
-        if self._alpha == NAN:
-            return None
-        return self._alpha
-
-    @alpha.setter
-    def alpha(self, object alpha):
-        if alpha is None:
-            self._alpha = NAN
-        elif alpha < 1e-10:
-            raise ValueError("alpha must be >=1E-10")
-        else:
-            self._alpha = alpha
+        self.model = model or ModelPrototype.from_name("HKY85")
 
     # ---
 
@@ -361,7 +375,7 @@ cdef class TreeBuilder:
 
     # FIXME: see if the global RNG can be replaced with a local type
     # r_seed = time(NULL) if io.r_seed < 0 else io.r_seed
-    
+
     cdef void _seed_rng(self, t_option* io) noexcept nogil:
         cdef int r_seed = self.seed
         if r_seed < 0:
@@ -372,14 +386,6 @@ cdef class TreeBuilder:
     cdef void _initialize_options(self, t_option* io) except *:
         # initialize RNG (--r_seed flag)
         self._seed_rng(io)
-        
-        # Parameter of the gamma distribution (--alpha flag)
-        if self._alpha == NAN:
-            io.mod.ras.alpha.v = 1.0
-            io.mod.ras.alpha.optimize = True
-        else:
-            io.mod.ras.alpha.v = self._alpha
-            io.mod.ras.alpha.optimize = False
 
     # ---
 
@@ -518,7 +524,7 @@ cdef class TreeBuilder:
                 raise RuntimeError("EXIT")
 
             for num_rand_tree in range(io.mod.s_opt.n_rand_starts):
-            
+
                 if io.mod.s_opt.random_input_tree and io.mod.s_opt.topo_search != t_topo.NNI_MOVE:
                     if not io.quiet:
                         PhyML_Printf("\n\n. [Random start %3d/%3d]", num_rand_tree + 1, io.mod.s_opt.n_rand_starts)
@@ -538,7 +544,7 @@ cdef class TreeBuilder:
                     # NOTE: User-provided tree, make a copy to be safe
                     #       (but do not read from file like original code)
                     #tree = phyml.io.Read_User_Tree(cdata, mod, io)
-                    tree = phyml.utilities.Duplicate_Tree(start_tree._tree) 
+                    tree = phyml.utilities.Duplicate_Tree(start_tree._tree)
                 assert tree is not NULL # FIXME?
 
                 if io.mod.s_opt.opt_topo:
@@ -722,8 +728,8 @@ cdef class TreeBuilder:
 
         # Return result structure
         return Result(
-            tree=out_tree, 
-            compressed=out_compressed, 
+            tree=out_tree,
+            compressed=out_compressed,
             alignment=alignment,
             log_likelihood=best_lnL,
         )
