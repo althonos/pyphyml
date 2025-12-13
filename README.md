@@ -20,7 +20,7 @@
 
 ## 🗺️ Overview
 
-PhyML is a software package developed by [Stephane Guindon](https://github.com/stephaneguindon)  
+PhyML is a software package developed by [Stephane Guindon](https://github.com/stephaneguindon)
 and [Olivier Gascuel](https://scholar.google.com/citations?user=vlLa_zgAAAAJ&hl=fr)[\[1\]](#ref1) 
 that uses modern statistical approaches to analyse alignments of nucleotide or 
 amino acid sequences in a phylogenetic framework. The main PhyML tool builds 

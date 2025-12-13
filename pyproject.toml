@@ -5,13 +5,46 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "pyphyml"
 version = "0.1.0-dev.1"
-description = "Cython bindings and Python interface to PhyML, ."
+description = "Cython bindings and Python interface to PhyML 3, a method for estimating maximum-likelihood phylogenies."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 license = { file = "COPYING" }
 authors = [
   { name = "Martin Larralde", email = "martin.larralde@embl.de" },
 ]
+keywords = ["bioinformatics", "phylogeny", "tree", "evolution", "maximum-likelihood"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: C",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/althonos/pyphyml/"
+# "Documentation" = "https://pyphyml.readthedocs.io/en/stable/"
+"Bug Tracker" = "https://github.com/althonos/pyphyml/issues"
+"Changelog" = "https://github.com/althonos/pyphyml/blob/master/CHANGELOG.md"
+# "Coverage" = "https://codecov.io/gh/althonos/pyphyml/"
+"Builds" = "https://github.com/althonos/pyphyml/actions"
+# "PyPI" = "https://pypi.org/project/pyphyml"
+# "PiWheels" = "https://piwheels.org/project/pyphyml/"
 
 [tool.scikit-build]
 build-dir = "build/{build_type}"
