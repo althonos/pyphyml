@@ -1,0 +1,13 @@
+diff --git a/src/free.c b/src/free.c
+index 09472f5..29e87e0 100644
+--- a/src/free.c
++++ b/src/free.c
+@@ -618,6 +618,8 @@ void Free_Model_Basic(t_mod *mixt_mod)
+   t_mod *mod;
+ 
+   Free_RAS(mixt_mod->ras);
++  Free_Scalar_Dbl(mixt_mod->aic);
++  Free_Scalar_Dbl(mixt_mod->bic);
+   Free_Scalar_Dbl(mixt_mod->mr);
+   Free_Scalar_Dbl(mixt_mod->kappa);
+   Free_Scalar_Dbl(mixt_mod->lambda);
