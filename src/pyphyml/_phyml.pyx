@@ -333,7 +333,8 @@ cdef class TreeBuilder:
 
         phyml.make.Make_Model_Complete(io.mod)
         phyml.utilities.Set_Model_Name(io.mod)
-        phyml.io.Print_Settings(io)
+        if not io.quiet:
+            phyml.io.Print_Settings(io)
 
         mod                    = io.mod
         orig_random_input_tree = io.mod.s_opt.random_input_tree
@@ -589,5 +590,6 @@ cdef class TreeBuilder:
         return Result(
             tree=out_tree, 
             compressed=out_compressed, 
-            alignment=alignment
+            alignment=alignment,
+            log_likelihood=best_lnL,
         )
