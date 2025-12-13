@@ -226,7 +226,7 @@ cdef class ModelPrototype:
         int rate_categories = 4,
         object kappa = None,
         object lambda_ = None,
-        object alpha = None,
+        object alpha = 1.0,
     ):
         """Create a new substitution model prototype.
         """
@@ -264,11 +264,11 @@ cdef class ModelPrototype:
 
         # set alpha value
         if alpha is None:
-            io.mod.ras.alpha.v = 1.0
-            io.mod.ras.alpha.optimize = True
+            model._mod.ras.alpha.v = 1.0
+            model._mod.ras.alpha.optimize = True
         else:
-            io.mod.ras.alpha.v = self._alpha
-            io.mod.ras.alpha.optimize = False
+            model._mod.ras.alpha.v = alpha
+            model._mod.ras.alpha.optimize = False
 
         # set lambda and kappa values
         if model._mod.whichmodel != t_whichmodel.JC69 and model._mod.whichmodel != t_whichmodel.F81 and model._mod.whichmodel != t_whichmodel.GTR:
@@ -325,9 +325,9 @@ cdef class TreeBuilder:
 
     def __init__(
         self,
+        ModelPrototype model = None,
         *,
         int seed = 0,
-        ModelPrototype model = None,
     ):
         """Create a new `TreeBuilder` with the given parameters.
 
