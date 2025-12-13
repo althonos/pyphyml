@@ -1,0 +1,26 @@
+diff --git a/src/utilities.c b/src/utilities.c
+index 7dd6c70..b4655aa 100644
+--- a/src/utilities.c
++++ b/src/utilities.c
+@@ -4595,11 +4595,16 @@ void Record_Model(t_mod *ori, t_mod *cpy)
+   cpy->ras->normalise_rr = ori->ras->normalise_rr;
+   cpy->l_var_sigma->v    = ori->l_var_sigma->v;
+ 
+-  cpy->kappa->v       = ori->kappa->v;
+-  cpy->ras->alpha->v  = ori->ras->alpha->v;
+-  cpy->lambda->v      = ori->lambda->v;
+-  cpy->ras->pinvar->v = ori->ras->pinvar->v;
+-  cpy->br_len_mult->v = ori->br_len_mult->v;
++  cpy->kappa->v              = ori->kappa->v;
++  cpy->kappa->optimize       = ori->kappa->optimize;
++  cpy->ras->alpha->v         = ori->ras->alpha->v;
++  cpy->ras->alpha->optimize  = ori->ras->alpha->optimize;
++  cpy->lambda->v             = ori->lambda->v;
++  cpy->lambda->optimize      = ori->lambda->optimize;
++  cpy->ras->pinvar->v        = ori->ras->pinvar->v;
++  cpy->ras->pinvar->optimize = ori->ras->pinvar->optimize;
++  cpy->br_len_mult->v        = ori->br_len_mult->v;
++  cpy->br_len_mult->optimize = ori->br_len_mult->optimize;
+ 
+   strcpy(cpy->modelname->s, ori->modelname->s);
+   strcpy(cpy->custom_mod_string->s, ori->custom_mod_string->s);
