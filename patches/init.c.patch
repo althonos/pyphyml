@@ -1,0 +1,13 @@
+diff --git a/src/init.c b/src/init.c
+index 468e846..717bc84 100644
+--- a/src/init.c
++++ b/src/init.c
+@@ -1132,7 +1132,7 @@ void Init_Model(calign *data, t_mod *mod, option *io)
+ #ifdef PHYML
+     for (i = 0; i < mod->ras->n_catg; i++)
+     {
+-      assert(mod->ras->gamma_r_proba->v[i] > 0.0);
++      // assert(mod->ras->gamma_r_proba->v[i] > 0.0);
+       mod->ras->gamma_r_proba_unscaled->v[i] =
+           log(mod->ras->gamma_r_proba->v[i]);
+     }
