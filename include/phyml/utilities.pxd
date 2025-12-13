@@ -1148,7 +1148,7 @@ cdef extern from "utilities.h" nogil:
     #                         int *idx_br, t_tree *tree);
     # int  *Integer_To_Bit(int val, const int ns);
     # char *Bit_To_Character_String(int *bit, int ns);
-    # t_tree *Duplicate_Tree(t_tree *ori);
+    t_tree* Duplicate_Tree(t_tree *ori)
     # matrix *K80_dist(calign *data, phydbl g_shape);
     # matrix *JC69_Dist(calign *data, t_mod *mod);
     # matrix *Hamming_Dist(calign *data, t_mod *mod);

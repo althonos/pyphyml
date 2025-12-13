@@ -23,10 +23,10 @@ cimport phyml.spr
 cimport phyml.optimiz
 cimport phyml.pars
 cimport phyml.ancestral
-
 from phyml.utilities cimport (
     phydbl,
     align as t_align,
+    calign as t_calign,
     option as t_option,
     t_mod,
     t_opt,
@@ -144,6 +144,13 @@ cdef class Alignment:
                         self._data[j] = data_buff
 
 
+cdef class CompressedAlignment:
+    cdef t_calign* _data
+
+    def __dealloc__(self):
+        if self._data is not NULL:
+            phyml.free.Free_Calign(self._data)
+
 # --- Tree ---------------------------------------------------------------------
 
 cdef class Tree:
@@ -179,111 +186,150 @@ cdef class Tree:
 
 # --- Main using alignment -----------------------------------------------------
 
-cdef t_option* Get_Input_Default():
-    cdef t_option* io     = NULL
-    cdef t_mod*    mod    = NULL
-    cdef t_opt*    s_opt  = NULL
-    cdef int       rv     = 1
 
-    io    = phyml.make.Make_Input()
-    mod   = phyml.make.Make_Model_Basic()
-    s_opt = phyml.make.Make_Optimiz()
+cdef class Result:
+    cdef readonly Tree                tree
+    cdef readonly Alignment           alignment
+    cdef readonly CompressedAlignment compressed
+    cdef readonly phydbl              log_likelihood
 
-    phyml.utilities.Set_Defaults_Input(io)
-    phyml.utilities.Set_Defaults_Model(mod)
-    phyml.utilities.Set_Defaults_Optimiz(s_opt)
+    def __init__(
+        self, 
+        Tree tree not None, 
+        Alignment alignment not None,
+        CompressedAlignment compressed not None,
+        phydbl log_likelihood,
+    ):
+        self.tree = tree
+        self.alignment = alignment
+        self.compressed = compressed
+        self.log_likelihood = log_likelihood
 
-    io.mod    = mod
-    mod.io    = io
-    mod.s_opt = s_opt
 
-    # switch (argc)
-    # {
-    # case 1:
-    # {
-    #     Launch_Interface(io);
-    #     break;
-    # }
-    # default:
-    # {
-    # rv = phyml.cl.Read_Command_Line(io, argc, argv);
-    # }
-    # }
-    #endif
-    # if not rv:
-    #     phyml.free.Free_Optimiz(s_opt)
-    #     phyml.free.Free_Model(mod)
-    #     phyml.free.Free_Input(io)
-    #     return NULL
+cdef class TreeBuilder:
 
-    return io
+    cdef readonly int  seed
 
-def main_ali(
-    Alignment ali not None,
-    *,
-    bint debug = False,
-):
+    def __init__(
+        self,
+        *,
+        int seed = 0,
+    ):
+        self.seed = seed
 
-    # cdef calign *cdata;
-    cdef t_option* io                       = NULL
-    cdef t_tree*   tree                     = NULL
-    cdef t_tree*   dum                      = NULL
-    cdef int       num_data_set
-    cdef int       num_tree
-    cdef int       num_rand_tree
-    # cdef t_mod  *mod;
-    cdef time_t    time_beg
-    cdef time_t    time_end
-    cdef phydbl    best_lnL                 = phyml.utilities.UNLIKELY
-    cdef int       r_seed
-    cdef char*     s
-    cdef char*     most_likely_tree         = NULL
-    cdef bint      orig_random_input_tree
+    # ---
 
-    #ifdef QUIET
-    # setvbuf(stdout, NULL, _IOFBF, 2048);
-    #endif
+    cdef t_option* _create_default_options(self):
+        cdef t_option* io     = NULL
+        cdef t_mod*    mod    = NULL
+        cdef t_opt*    s_opt  = NULL
+        cdef int       rv     = 1
 
-    io = Get_Input_Default()
-    if io is NULL:
-        raise ValueError("Failed parsing input")
+        io    = phyml.make.Make_Input()
+        mod   = phyml.make.Make_Model_Basic()
+        s_opt = phyml.make.Make_Optimiz()
 
-    #
-    io.quiet = not debug
+        phyml.utilities.Set_Defaults_Input(io)
+        phyml.utilities.Set_Defaults_Model(mod)
+        phyml.utilities.Set_Defaults_Optimiz(s_opt)
 
-    # Seed global RNG
+        io.mod    = mod
+        mod.io    = io
+        mod.s_opt = s_opt
+
+        return io
+
     # FIXME: see if the global RNG can be replaced with a local type
     # r_seed = time(NULL) if io.r_seed < 0 else io.r_seed
-    r_seed = 42
-    srand(r_seed)
-    io.r_seed = r_seed
+    
+    cdef void _seed_rng(self, t_option* io) noexcept nogil:
+        cdef int r_seed = self.seed
+        if r_seed < 0:
+            r_seed = time(NULL)
+        io.r_seed = r_seed
+        srand(r_seed)
 
-    #
-    if io.in_tree == 2:
-        # Test_Multiple_Data_Set_Format(io)
-        raise NotImplementedError("Test_Multiple_Data_Set_Format")
-    else:
+    cdef void _initialize_options(self, t_option* io) except *:
+        # Initialize RNG
+        self._seed_rng(io)
+
+    # ---
+
+    cpdef Result build(
+        self,
+        Alignment alignment,
+        Tree start_tree = None,
+        bint debug = False,
+    ):
+        """Build a tree from the given alignment.
+
+        Arguments:
+            alignment (`Alignment`): The multiple sequence alignment to
+                estimate a phylogeny for.
+            tree (`Tree` or `None`): A starting tree to use, or `None`
+                to compute an initial tree with the BioNJ algorithm.
+
+        """
+        # TODO: allow multiple start tree
+
+        cdef t_calign* cdata                    = NULL
+        cdef t_option* io                       = NULL
+        cdef t_tree*   tree                     = NULL
+        cdef t_tree*   dum                      = NULL
+        cdef int       num_tree
+        cdef int       num_rand_tree
+        cdef time_t    time_beg
+        cdef time_t    time_end
+        cdef phydbl    best_lnL                 = phyml.utilities.UNLIKELY
+        cdef char*     s
+        cdef char*     most_likely_tree         = NULL
+        cdef bint      orig_random_input_tree
+
+        cdef Tree                out_tree
+        cdef CompressedAlignment out_compressed
+
+        # Validate alignment
+        if alignment is None:
+            raise TypeError("expected Alignment, found None")
+        assert alignment._data is not NULL
+
+        #ifdef QUIET
+        # setvbuf(stdout, NULL, _IOFBF, 2048);
+        #endif
+
+        # Create a new `t_option` struct to handle PhyML configuration
+        io = self._create_default_options()
+        if io is NULL:
+            raise ValueError("Failed parsing input")
+
+        # Enable verbose output in debug mode
+        io.quiet = not debug
+        # Initialize options and seed global RNG
+        self._initialize_options(io)
+
+        # Use user-defined start tree
+        if start_tree is not None:
+            io.in_tree = 2  # in_tree=2 for user-defined tree, =1 for parsimony, =0 by default
+
+        # if io.in_tree == 2:
+        #     # Test_Multiple_Data_Set_Format(io)
+        #     raise NotImplementedError("Test_Multiple_Data_Set_Format")
+        # else:
         io.n_trees = 1
 
-    #
-    if io.n_trees == 0 and io.in_tree == 2:
-        raise ValueError("invalid format of input tree")
+        #
+        # if io.n_trees == 0 and io.in_tree == 2:
+        #     raise ValueError("invalid format of input tree")
 
-    #
-    if io.n_data_sets > 1 and io.n_trees > 1:
-        io.n_data_sets = min(io.n_trees, io.n_data_sets)
-        io.n_trees     = min(io.n_trees, io.n_data_sets)
-
-    #
-    for num_data_set in range(0, io.n_data_sets):
-
-        best_lnL = phyml.utilities.UNLIKELY
+        #
+        # if io.n_data_sets > 1 and io.n_trees > 1:
+        #     io.n_data_sets = min(io.n_trees, io.n_data_sets)
+        #     io.n_trees     = min(io.n_trees, io.n_data_sets)
 
         # phyml.io.Get_Seq(io)
-        io.n_otu = ali._n_otu
-        io.data = ali._data
-        io.datatype = ali._datatype
-
+        io.n_otu = alignment._n_otu
+        io.data = alignment._data
+        io.datatype = alignment._datatype
 
         phyml.make.Make_Model_Complete(io.mod)
         phyml.utilities.Set_Model_Name(io.mod)
@@ -292,290 +338,256 @@ def main_ali(
         mod                    = io.mod
         orig_random_input_tree = io.mod.s_opt.random_input_tree
 
-        if io.data is not NULL:
+        cdata = phyml.utilities.Compact_Data(io.data, io)
+        # phyml.free.Free_Seq(io.data, cdata.n_otu)
 
-            if io.n_data_sets > 1:
-                PhyML_Printf("\n. Data set [#%d]\n", num_data_set + 1)
+        for num_tree in range(io.n_trees):
+            if not io.mod.s_opt.random_input_tree:
+                io.mod.s_opt.n_rand_starts = 1
 
-            cdata = phyml.utilities.Compact_Data(io.data, io)
+            if orig_random_input_tree and io.n_trees > 1:
+                PhyML_Printf("\n== Cannot combine random starting trees with multiple input trees.")
+                raise RuntimeError("EXIT")
 
-            # phyml.free.Free_Seq(io.data, cdata.n_otu)
+            for num_rand_tree in range(io.mod.s_opt.n_rand_starts):
+            
+                if io.mod.s_opt.random_input_tree and io.mod.s_opt.topo_search != t_topo.NNI_MOVE:
+                    if not io.quiet:
+                        PhyML_Printf("\n\n. [Random start %3d/%3d]", num_rand_tree + 1, io.mod.s_opt.n_rand_starts)
 
-            for num_tree in range(0 if io.n_trees == 1 else num_data_set, io.n_trees):
-                if not io.mod.s_opt.random_input_tree:
-                    io.mod.s_opt.n_rand_starts = 1
+                phyml.init.Init_Model(cdata, mod, io)
+                phyml.models.Set_Model_Parameters(mod)
 
-                if orig_random_input_tree and io.n_trees > 1:
-                    PhyML_Printf("\n== Cannot combine random starting trees with multiple input trees.")
-                    raise RuntimeError("EXIT")
+                # Make the initial tree
+                # in_tree == 0 or in_tree == 1 means BioNJ
+                # in_tree == 2 --> user-provided tree
+                if io.in_tree == 0 or io.in_tree == 1:
+                    tree = phyml.utilities.Dist_And_BioNJ(cdata, mod, io)
+                    # if io.print_mat_and_exit:
+                    #     phyml.io.Print_Mat(phyml.lk.ML_Dist(cdata, mod))
+                    #     raise RuntimeError("exit", -1)
+                elif io.in_tree == 2:
+                    # NOTE: User-provided tree, make a copy to be safe
+                    #       (but do not read from file like original code)
+                    #tree = phyml.io.Read_User_Tree(cdata, mod, io)
+                    tree = phyml.utilities.Duplicate_Tree(start_tree._tree) 
+                assert tree is not NULL # FIXME?
 
-                for num_rand_tree in range(io.mod.s_opt.n_rand_starts):
-                # {
-                    if (io.mod.s_opt.random_input_tree) and (io.mod.s_opt.topo_search != t_topo.NNI_MOVE):
-                        if not io.quiet:
-                            PhyML_Printf("\n\n. [Random start %3d/%3d]", num_rand_tree + 1, io.mod.s_opt.n_rand_starts)
+                if io.mod.s_opt.opt_topo:
+                    phyml.utilities.Remove_Duplicates(cdata, io, tree)
 
-                    phyml.init.Init_Model(cdata, mod, io)
-                    phyml.models.Set_Model_Parameters(mod)
+                # TODO: Support constraint tree
+                # if io.fp_in_constraint_tree is not NULL:
+                #     PhyML_Printf("\n. Reading constraint tree file...")
+                #
+                #     io.cstr_tree = phyml.io.Read_Tree_File_Phylip(io.fp_in_constraint_tree)
+                #     if io.cstr_tree.n_root is not NULL:
+                #         PhyML_Printf("\n== The constraint tree file must be unrooted")
+                #         raise RuntimeError("exit")
+                #
+                #     s = phyml.utilities.Add_Taxa_To_Constraint_Tree(io.fp_in_constraint_tree, cdata)
+                #     fflush(NULL)
+                #     phyml.free.Free_Tree(tree)
+                #     tree = phyml.io.Read_Tree(&s)
+                #     io.in_tree = 2
+                #     phyml.free.Free(s)
+                #     s = NULL
+                #
+                #     phyml.utilities.Check_Constraint_Tree_Taxa_Names(io.cstr_tree, cdata)
+                #     phyml.utilities.Alloc_Bip(io.cstr_tree)
+                #     phyml.utilities.Get_Bip(io.cstr_tree.a_nodes[0], io.cstr_tree.a_nodes[0].v[0], io.cstr_tree)
+                #     if not tree.has_branch_lengths:
+                #         phyml.utilities.Add_BioNJ_Branch_Lengths(tree, cdata, mod, NULL)
 
-                    # #ifdef M4
-                    # if (io->mod->use_m4mod) M4_Init_Model(mod->m4mod, cdata, mod);
-                    # #endif
+                if tree is NULL:
+                    continue
 
-                    # Make the initial tree
-                    if io.in_tree == 0 or io.in_tree == 1:
-                        tree = phyml.utilities.Dist_And_BioNJ(cdata, mod, io)
-                        if io.print_mat_and_exit:
-                            phyml.io.Print_Mat(phyml.lk.ML_Dist(cdata, mod))
-                            raise RuntimeError("exit", -1)
-                    elif io.in_tree == 2:
-                        tree = phyml.io.Read_User_Tree(cdata, mod, io)
-                        assert tree is not NULL # FIXME?
+                time(&time_beg)
+                time(&(tree.t_beg))
 
-                    if io.mod.s_opt.opt_topo:
-                        phyml.utilities.Remove_Duplicates(cdata, io, tree)
+                tree.mod          = mod
+                tree.io           = io
+                tree.data         = cdata
+                tree.n_root       = NULL
+                tree.e_root       = NULL
+                tree.n_tot_bl_opt = 0
 
-                    if io.fp_in_constraint_tree is not NULL:
+                phyml.utilities.Set_Both_Sides(True, tree)
 
-                        PhyML_Printf("\n. Reading constraint tree file...")
+                # check memory requirement on first run
+                if num_tree == 0 and num_rand_tree == 0:
+                    phyml.utilities.Check_Memory_Amount(tree)
 
-                        io.cstr_tree = phyml.io.Read_Tree_File_Phylip(io.fp_in_constraint_tree)
-                        if io.cstr_tree.n_root is not NULL:
-                            PhyML_Printf("\n== The constraint tree file must be unrooted")
-                            raise RuntimeError("exit")
+                # TODO: Support constraint tree
+                # if io.cstr_tree is not NULL and not phyml.utilities.Check_Topo_Constraints(tree, io.cstr_tree):
+                #     PhyML_Printf("\n\n== The initial tree does not satisfy the topological constraint.")
+                #     PhyML_Printf("\n== Please use the user input tree option with an adequate tree topology.")
+                #     raise RuntimeError("EXIT")
 
-                        s = phyml.utilities.Add_Taxa_To_Constraint_Tree(io.fp_in_constraint_tree, cdata)
-                        fflush(NULL)
-                        phyml.free.Free_Tree(tree)
-                        tree = phyml.io.Read_Tree(&s)
-                        io.in_tree = 2
-                        phyml.free.Free(s)
-                        s = NULL
+                phyml.utilities.Connect_CSeqs_To_Nodes(tree.data, tree.io, tree)
+                phyml.make.Make_Tree_For_Pars(tree)
+                phyml.make.Make_Tree_For_Lk(tree)
+                phyml.make.Make_Spr(tree)
+                phyml.utilities.Br_Len_Not_Involving_Invar(tree)
+                phyml.utilities.Unscale_Br_Len_Multiplier_Tree(tree)
 
-                        phyml.utilities.Check_Constraint_Tree_Taxa_Names(io.cstr_tree, cdata)
-                        phyml.utilities.Alloc_Bip(io.cstr_tree)
-                        phyml.utilities.Get_Bip(io.cstr_tree.a_nodes[0], io.cstr_tree.a_nodes[0].v[0], io.cstr_tree)
-                        if not tree.has_branch_lengths:
-                            phyml.utilities.Add_BioNJ_Branch_Lengths(tree, cdata, mod, NULL)
+                # NOTE: Unused (I/O)
+                # if tree.io.print_json_trace:
+                #     phyml.io.JSON_Tree_Io(tree, tree.io.fp_out_json_trace)
 
-                    if tree is NULL:
-                        continue
-
-                    time(&time_beg)
-                    time(&(tree.t_beg))
-
-                    tree.mod          = mod
-                    tree.io           = io
-                    tree.data         = cdata
-                    tree.n_root       = NULL
-                    tree.e_root       = NULL
-                    tree.n_tot_bl_opt = 0
-
-                    phyml.utilities.Set_Both_Sides(True, tree)
-
-                    # check memory requirement on first run
-                    if num_data_set == 0 and num_tree == 0 and num_rand_tree == 0:
-                        phyml.utilities.Check_Memory_Amount(tree)
-
-                    if io.cstr_tree is not NULL and not phyml.utilities.Check_Topo_Constraints(tree, io.cstr_tree):
-                        PhyML_Printf("\n\n== The initial tree does not satisfy the topological constraint.")
-                        PhyML_Printf("\n== Please use the user input tree option with an adequate tree topology.")
-                        raise RuntimeError("EXIT")
-
-                    phyml.utilities.Connect_CSeqs_To_Nodes(tree.data, tree.io, tree)
-                    phyml.make.Make_Tree_For_Pars(tree)
-                    phyml.make.Make_Tree_For_Lk(tree)
-                    phyml.make.Make_Spr(tree)
-                    phyml.utilities.Br_Len_Not_Involving_Invar(tree)
-                    phyml.utilities.Unscale_Br_Len_Multiplier_Tree(tree)
-
-                    # #ifdef BEAGLE
-                    # if (mod->bootstrap == YES)
-                    # {
-                    #     PhyML_Printf("\n== PhyML-BEAGLE does not support bootstrap "
-                    #                 "analysis yet... ");
-                    #     Exit("\n");
-                    # }
-                    # if (mod->ras->invar == YES)
-                    # {
-                    #     PhyML_Printf("\n== PhyML-BEAGLE does not support invariant site "
-                    #                 "models yet... ");
-                    #     Exit("\n");
-                    # }
-                    # #endif
-
-                    if tree.io.print_json_trace:
-                        phyml.io.JSON_Tree_Io(tree, tree.io.fp_out_json_trace)
-
-                    phyml.utilities.Set_Update_Eigen(True, tree.mod)
-                    phyml.lk.Lk(NULL, tree)
-                    phyml.utilities.Set_Update_Eigen(False, tree.mod)
-
+                phyml.utilities.Set_Update_Eigen(True, tree.mod)
+                phyml.lk.Lk(NULL, tree)
+                phyml.utilities.Set_Update_Eigen(False, tree.mod)
+                if not io.quiet:
                     PhyML_Printf("\n. Init log-likelihood: %f", tree.c_lnL)
 
-                    if (tree.mod.s_opt.opt_topo):
-                        phyml.spr.Global_Spr_Search(tree)
-                        if (tree.n_root):
-                            phyml.utilities.Add_Root(tree.a_edges[0], tree)
-                    else:
-                        # #ifdef BEAGLE
-                        # tree->b_inst = create_beagle_instance(tree, io->quiet, io);
-                        # #endif
-                        if tree.mod.s_opt.opt_subst_param or tree.mod.s_opt.opt_bl_one_by_one:
-                            phyml.optimiz.Round_Optimize(tree, phyml.utilities.ROUND_MAX)
+                if tree.mod.s_opt.opt_topo:
+                    phyml.spr.Global_Spr_Search(tree)
+                    if tree.n_root:
+                        phyml.utilities.Add_Root(tree.a_edges[0], tree)
+                else:
+                    if tree.mod.s_opt.opt_subst_param or tree.mod.s_opt.opt_bl_one_by_one:
+                        phyml.optimiz.Round_Optimize(tree, phyml.utilities.ROUND_MAX)
 
-                    # if(tree->mod->gamma_mgf_bl)
-                    # Best_Root_Position_IL_Model(tree);
-
-                    phyml.utilities.Set_Both_Sides(True, tree)
-                    phyml.lk.Lk(NULL, tree)
-                    phyml.pars.Pars(NULL, tree)
-                    phyml.utilities.Get_Tree_Size(tree)
+                phyml.utilities.Set_Both_Sides(True, tree)
+                phyml.lk.Lk(NULL, tree)
+                phyml.pars.Pars(NULL, tree)
+                phyml.utilities.Get_Tree_Size(tree)
+                if not io.quiet:
                     PhyML_Printf("\n\n. Log likelihood of the current tree: %.*f.", DECIMAL_DIG, tree.c_lnL)
 
-                    if tree.io.ancestral:
-                        phyml.ancestral.Ancestral_Sequences(tree, True)
+                if tree.io.ancestral:
+                    phyml.ancestral.Ancestral_Sequences(tree, True)
 
-                    phyml.utilities.Check_Br_Lens(tree)
-                    phyml.utilities.Br_Len_Involving_Invar(tree)
-                    phyml.utilities.Rescale_Br_Len_Multiplier_Tree(tree)
+                phyml.utilities.Check_Br_Lens(tree)
+                phyml.utilities.Br_Len_Involving_Invar(tree)
+                phyml.utilities.Rescale_Br_Len_Multiplier_Tree(tree)
 
-                    if tree.n_root is NULL:
-                        phyml.utilities.Get_Best_Root_Position(tree)
+                if tree.n_root is NULL:
+                    phyml.utilities.Get_Best_Root_Position(tree)
 
-                    # Print the tree estimated using the current random (or BioNJ) starting tree
-                    # if(io->mod->s_opt->n_rand_starts > 1)
-                    if orig_random_input_tree:
-                        phyml.io.Print_Tree(io.fp_out_trees, tree)
-                        fflush(NULL)
-
-                    # Record the most likely tree in a string of characters
-                    # FIXME: avoid serialization here?
-                    if tree.c_lnL > best_lnL:
-                        best_lnL = tree.c_lnL
-                        if most_likely_tree is not NULL:
-                            phyml.free.Free(most_likely_tree)
-                        most_likely_tree = phyml.io.Write_Tree(tree)
-
-                        time(&time_end)
-
-                        # FIXME: we don't have FP out but maybe we could
-                        #        capture the stats here rather than outputting
-                        #        them
-                        # phyml.io.Print_Fp_Out(
-                        #     io.fp_out_stats,
-                        #     time_beg,
-                        #     time_end,
-                        #     tree,
-                        #     io,
-                        #     num_data_set + 1,
-                        #     num_rand_tree if orig_random_input_tree else num_tree,
-                        #     num_rand_tree == io.mod.s_opt.n_rand_starts - 1,
-                        #     io.precision
-                        # )
-
-                        if tree.io.print_site_lnl:
-                            phyml.io.Print_Site_Lk(tree, io.fp_out_lk)
-
-                    # Start from BioNJ tree
-                    if num_rand_tree == io.mod.s_opt.n_rand_starts - 1 and tree.mod.s_opt.random_input_tree:
-                        # Do one more iteration in the loop, but don't randomize the tree
-                        tree.mod.s_opt.n_rand_starts += 1
-                        tree.mod.s_opt.random_input_tree = False
-
-                    # #ifdef BEAGLE
-                    # finalize_beagle_instance(tree);
-                    # #endif
-                    phyml.free.Free_Best_Spr(tree)
-                    phyml.free.Free_Spr_List_One_Edge(tree)
-                    phyml.free.Free_Spr_List_All_Edge(tree)
-                    phyml.free.Free_Tree_Pars(tree)
-                    phyml.free.Free_Tree_Lk(tree)
-                    phyml.free.Free_Tree(tree)
-                # Tree done
-
-                if io.n_data_sets == 1:
-                    if io.fp_out_tree is not NULL:
-                        rewind(io.fp_out_tree)
-
-                if most_likely_tree is not NULL:
-                    if io.fp_out_tree is not NULL:
-                        PhyML_Fprintf(io.fp_out_tree, "%s\n", most_likely_tree)
-
-                # Launch bootstrap analysis
-                if io.do_boot or io.do_tbe:
-                    if not io.quiet:
-                        PhyML_Printf("\n\n. Launch bootstrap analysis on the most likely tree...")
-                    most_likely_tree = phyml.utilities.Bootstrap_From_String(most_likely_tree, cdata, mod, io)
-                    PhyML_Printf("\n\n. Completed the bootstrap analysis succesfully.")
+                # Print the tree estimated using the current random (or BioNJ) starting tree
+                if orig_random_input_tree:
+                    phyml.io.Print_Tree(io.fp_out_trees, tree)
                     fflush(NULL)
-                elif io.ratio_test != 0.0:
-                    # Launch aLRT
-                    most_likely_tree = phyml.utilities.aLRT_From_String(most_likely_tree, cdata, mod, io)
 
-                # Print the most likely tree in the output file
+                # Record the most likely tree in a string of characters
+                # FIXME: avoid serialization here?
+                if tree.c_lnL > best_lnL:
+                    best_lnL = tree.c_lnL
+                    if most_likely_tree is not NULL:
+                        phyml.free.Free(most_likely_tree)
+                    most_likely_tree = phyml.io.Write_Tree(tree)
+
+                    time(&time_end)
+
+                    # FIXME: we don't have FP out but we could
+                    #        capture the stats here rather than outputting
+                    #        them to a file
+                    # phyml.io.Print_Fp_Out(
+                    #     io.fp_out_stats,
+                    #     time_beg,
+                    #     time_end,
+                    #     tree,
+                    #     io,
+                    #     num_data_set + 1,
+                    #     num_rand_tree if orig_random_input_tree else num_tree,
+                    #     num_rand_tree == io.mod.s_opt.n_rand_starts - 1,
+                    #     io.precision
+                    # )
+
+                    if tree.io.print_site_lnl:
+                        phyml.io.Print_Site_Lk(tree, io.fp_out_lk)
+
+                # Start from BioNJ tree
+                if num_rand_tree == io.mod.s_opt.n_rand_starts - 1 and tree.mod.s_opt.random_input_tree:
+                    # Do one more iteration in the loop, but don't randomize the tree
+                    tree.mod.s_opt.n_rand_starts += 1
+                    tree.mod.s_opt.random_input_tree = False
+
+                # Deallocate memory for the current tree
+                phyml.free.Free_Best_Spr(tree)
+                phyml.free.Free_Spr_List_One_Edge(tree)
+                phyml.free.Free_Spr_List_All_Edge(tree)
+                phyml.free.Free_Tree_Pars(tree)
+                phyml.free.Free_Tree_Lk(tree)
+                phyml.free.Free_Tree(tree)
+
+            # FIXME: Move bootstrap to another post-process function?
+            # Launch bootstrap analysis
+            if io.do_boot or io.do_tbe:
                 if not io.quiet:
-                    PhyML_Printf("\n\n. Printing the most likely tree in file '%s'.", phyml.utilities.Basename(io.out_tree_file));
-                if io.n_data_sets == 1:
-                    if io.fp_out_tree is not NULL:
-                        rewind(io.fp_out_tree)
+                    PhyML_Printf("\n\n. Launch bootstrap analysis on the most likely tree...")
+                most_likely_tree = phyml.utilities.Bootstrap_From_String(most_likely_tree, cdata, mod, io)
+                PhyML_Printf("\n\n. Completed the bootstrap analysis succesfully.")
+                fflush(NULL)
+            elif io.ratio_test != 0.0:
+                # Launch aLRT
+                most_likely_tree = phyml.utilities.aLRT_From_String(most_likely_tree, cdata, mod, io)
 
-                dum      = phyml.io.Read_Tree(&most_likely_tree)
-                dum.data = cdata
-                dum.mod  = mod
-                dum.io   = io
-                phyml.utilities.Connect_CSeqs_To_Nodes(cdata, io, dum)
-                phyml.utilities.Insert_Duplicates(dum)
-                phyml.free.Free(most_likely_tree)
-                most_likely_tree = phyml.io.Write_Tree(dum)
-                phyml.free.Free_Tree(dum)
-
+            # Print the most likely tree in the output file
+            if not io.quiet:
+                PhyML_Printf("\n\n. Printing the most likely tree in file '%s'.", phyml.utilities.Basename(io.out_tree_file));
+            if io.n_data_sets == 1:
                 if io.fp_out_tree is not NULL:
-                    PhyML_Fprintf(io.fp_out_tree, "%s\n", most_likely_tree)
+                    rewind(io.fp_out_tree)
 
-                if io.n_trees > 1 and io.n_data_sets > 1:
-                    break
+            # Recover most likely tree and add removed duplicate sequences
+            # FIXME: avoid serialization / deserialization?
+            dum      = phyml.io.Read_Tree(&most_likely_tree)
+            dum.data = cdata
+            dum.mod  = mod
+            dum.io   = io
+            phyml.utilities.Connect_CSeqs_To_Nodes(cdata, io, dum)
+            phyml.utilities.Insert_Duplicates(dum)
+            phyml.free.Free(most_likely_tree)
+            most_likely_tree = phyml.io.Write_Tree(dum)
+            phyml.free.Free_Tree(dum)
 
-            phyml.free.Free_Calign(cdata)
+            # NOTE: Unused (I/O)
+            # if io.fp_out_tree is not NULL:
+            #     PhyML_Fprintf(io.fp_out_tree, "%s\n", most_likely_tree)
+            # if io.n_trees > 1 and io.n_data_sets > 1:
+            #     break
 
+
+        # Recover the most likely tree
+        if most_likely_tree is not NULL:
+            out_tree = Tree.__new__(Tree)
+            out_tree._tree      = phyml.io.Read_Tree(&most_likely_tree)
+            out_tree._tree.data = cdata
+            out_tree._tree.mod  = mod
+            out_tree._tree.io   = io
+            phyml.utilities.Connect_CSeqs_To_Nodes(cdata, io, out_tree._tree)
+            phyml.utilities.Insert_Duplicates(out_tree._tree)
+            phyml.free.Free(most_likely_tree)
         else:
-            PhyML_Printf("\n== No data was found.\n")
-            raise RuntimeError("Exit")
+            out_tree = None
 
+        # Keep the compressed alignment
+        out_compressed = CompressedAlignment.__new__(CompressedAlignment)
+        out_compressed._data = cdata
+
+        # Free model
         phyml.free.Free_Model_Complete(mod)
 
-    # if most_likely_tree is not NULL:
-        # phyml.free.Free(most_likely_tree)
+        if mod.s_opt.n_rand_starts > 1:
+            if not io.quiet:
+                PhyML_Printf("\n. Best log likelihood: %f\n", best_lnL)
 
-    if mod.s_opt.n_rand_starts > 1:
-        PhyML_Printf("\n. Best log likelihood: %f\n", best_lnL)
+        # Free remaining data
+        phyml.free.Free_Optimiz(mod.s_opt)
+        phyml.free.Free_Model_Basic(mod)
+        phyml.free.Free_Input(io)
 
-    phyml.free.Free_Optimiz(mod.s_opt)
-    phyml.free.Free_Model_Basic(mod)
+        # Record and display finish time
+        time(&time_end)
+        if not io.quiet:
+            phyml.io.Print_Time_Info(time_beg, time_end)
 
-    # if (io->fp_in_constraint_tree) fclose(io->fp_in_constraint_tree);
-    # if (io->fp_in_align) fclose(io->fp_in_align);
-    # if (io->fp_in_tree) fclose(io->fp_in_tree);
-    # if (io->fp_out_lk) fclose(io->fp_out_lk);
-    # if (io->fp_out_tree) fclose(io->fp_out_tree);
-    # if (io->fp_out_trees) fclose(io->fp_out_trees);
-    # if (io->fp_out_stats) fclose(io->fp_out_stats);
-    # if (io->fp_out_trace) fclose(io->fp_out_trace);
-    # if (io->fp_out_json_trace) fclose(io->fp_out_json_trace);
-
-    # if (io->fp_in_constraint_tree != NULL) Free_Tree(io->cstr_tree);
-    phyml.free.Free_Input(io)
-
-    time(&time_end)
-    phyml.io.Print_Time_Info(time_beg, time_end)
-
-    if most_likely_tree is NULL:
-        return None
-
-    # FIXME: read, ocnnect cseqs, insert duplciates, free
-    # return most_likely_tree.decode('utf-8')
-
-    cdef Tree t = Tree.__new__(Tree)
-    t._tree = phyml.io.Read_Tree(&most_likely_tree)
-    phyml.free.Free(most_likely_tree)
-    return t
+        # Return result structure
+        return Result(
+            tree=out_tree, 
+            compressed=out_compressed, 
+            alignment=alignment
+        )
