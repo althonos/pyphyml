@@ -485,7 +485,9 @@ cdef extern from "utilities.h" nogil:
 
     cdef struct __Matrix:
                                  # mostly used in BIONJ
-        phydbl **P, **Q, **dist; # observed proportions of transition, transverion and  distances between pairs of sequences
+        phydbl **P    # observed proportions of transition between pairs of sequences
+        phydbl **Q    # observed proportions of transverion between pairs of sequences
+        phydbl **dist # observed proportions of distances between pairs of sequences
         t_tree *tree # tree
         int *on_off  # on_off[i]=1 if column/line i corresponds to a t_node that has not been agglomerated yet
         int             n_otu # number of taxa
