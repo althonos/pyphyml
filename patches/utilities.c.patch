@@ -1,5 +1,5 @@
 diff --git a/src/utilities.c b/src/utilities.c
-index 7dd6c70..b4655aa 100644
+index 7dd6c70..458957f 100644
 --- a/src/utilities.c
 +++ b/src/utilities.c
 @@ -4595,11 +4595,16 @@ void Record_Model(t_mod *ori, t_mod *cpy)
@@ -24,3 +24,11 @@ index 7dd6c70..b4655aa 100644
  
    strcpy(cpy->modelname->s, ori->modelname->s);
    strcpy(cpy->custom_mod_string->s, ori->custom_mod_string->s);
+@@ -4637,6 +4642,7 @@ void Record_Model(t_mod *ori, t_mod *cpy)
+   for (i = 0; i < cpy->ns * cpy->ns; ++i)
+     cpy->r_mat->qmat->v[i] = ori->r_mat->qmat->v[i];
+ 
++  cpy->ras->init_r_proba = ori->ras->init_r_proba;
+   for (i = 0; i < cpy->ras->n_catg; i++)
+   {
+     cpy->ras->gamma_r_proba->v[i] = ori->ras->gamma_r_proba->v[i];
