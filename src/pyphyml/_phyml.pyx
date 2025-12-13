@@ -34,6 +34,7 @@ from phyml.utilities cimport (
     t_tree,
     t_topo,
     t_type,
+    t_whichmodel,
 )
 
 import os
@@ -185,6 +186,79 @@ cdef class Tree:
         return s
 
 
+# --- Model --------------------------------------------------------------------
+
+cdef dict _NT_MODELS = {
+    "JC69": <int> t_whichmodel.JC69,
+    "K80": <int> t_whichmodel.K80,
+    "F81": <int> t_whichmodel.F81,
+    "HKY85": <int> t_whichmodel.HKY85,
+    "F84": <int> t_whichmodel.F84,
+    "TN93": <int> t_whichmodel.TN93,
+    "GTR": <int> t_whichmodel.GTR,
+}
+
+cdef dict _AA_MODELS = {
+    "WAG": <int> t_whichmodel.WAG,
+}
+
+cdef class ModelPrototype:
+    cdef t_mod* _mod
+    cdef int    _type
+
+    def __cinit__(self):
+        self._mod = NULL
+        self._type = <int> t_type.UNDEFINED
+
+    def __init__(self):
+        raise TypeError("cannot instantiate a Model")
+
+    def __dealloc__(self):
+        if self._mod is not NULL:
+            phyml.free.Free_Model_Complete(self._mod)
+            phyml.free.Free_Model_Basic(self._mod)
+
+    @classmethod
+    def from_name(cls, str name, int rate_categories = 4):
+        """Create a new substitution model factory
+        """
+        cdef ModelPrototype model
+        
+        if rate_categories < 1:
+            raise ValueError("The number of rate categories must be a positive integer")
+
+        model = ModelPrototype.__new__(ModelPrototype)
+        model._mod = phyml.make.Make_Model_Basic()
+        if model._mod is NULL:
+            raise MemoryError
+
+        phyml.utilities.Set_Defaults_Model(model._mod)
+
+        if name in _NT_MODELS:
+            model._type = <int> t_type.NT
+            model._mod.ns = 4
+            model._mod.whichmodel = <int> _NT_MODELS[name]
+        elif name in _AA_MODELS:
+            raise NotImplementedError
+        else:
+            raise ValueError(name)
+        
+        phyml.utilities.Set_Model_Name(model._mod)
+        
+        model._mod.ras.n_catg = rate_categories
+        if rate_categories == 1:
+            model._mod.ras.alpha.optimize = False
+
+        if model._mod.whichmodel != t_whichmodel.JC69 and model._mod.whichmodel != t_whichmodel.F81 and model._mod.whichmodel != t_whichmodel.GTR:
+            model._mod.kappa.v = 4.0
+            model._mod.kappa.optimize = True
+            if model._mod.whichmodel == t_whichmodel.TN93:
+                model._mod.lambda_.optimize = True
+
+        phyml.make.Make_Model_Complete(model._mod)
+
+        return model
+
 
 # --- Main using alignment -----------------------------------------------------
 
@@ -209,15 +283,16 @@ cdef class Result:
 
 
 cdef class TreeBuilder:
-
-    cdef readonly int   seed
-    cdef          float _alpha
+    cdef readonly ModelPrototype model
+    cdef readonly int            seed
+    cdef          float          _alpha
 
     def __init__(
         self,
         *,
         int seed = 0,
         object alpha = 1.0,
+        object model = "HKY85",
     ):
         """Create a new `TreeBuilder` with the given parameters.
 
@@ -232,6 +307,11 @@ cdef class TreeBuilder:
         """
         self.seed = seed
         self.alpha = alpha
+
+        if isinstance(model, str):
+            self.model = ModelPrototype.from_name(model)
+        else:
+            self.model = model
 
     @property
     def alpha(self):
@@ -252,18 +332,25 @@ cdef class TreeBuilder:
 
     # ---
 
-    cdef t_option* _create_default_options(self):
+    cdef t_option* _create_default_options(self) except NULL:
         cdef t_option* io     = NULL
         cdef t_mod*    mod    = NULL
         cdef t_opt*    s_opt  = NULL
         cdef int       rv     = 1
 
-        io    = phyml.make.Make_Input()
-        mod   = phyml.make.Make_Model_Basic()
+        io = phyml.make.Make_Input()
+        if io is NULL:
+            raise MemoryError
+
+        mod = phyml.utilities.Copy_Model(self.model._mod)
+        if mod is NULL:
+            raise MemoryError
+
         s_opt = phyml.make.Make_Optimiz()
+        if s_opt is NULL:
+            raise MemoryError
 
         phyml.utilities.Set_Defaults_Input(io)
-        phyml.utilities.Set_Defaults_Model(mod)
         phyml.utilities.Set_Defaults_Optimiz(s_opt)
 
         io.mod    = mod
@@ -357,6 +444,7 @@ cdef class TreeBuilder:
         cdef t_option* io                       = NULL
         cdef t_tree*   tree                     = NULL
         cdef t_tree*   dum                      = NULL
+        cdef t_mod*    mod                      = NULL
         cdef int       num_tree
         cdef int       num_rand_tree
         cdef time_t    time_beg
@@ -410,8 +498,8 @@ cdef class TreeBuilder:
         io.data = alignment._data
         io.datatype = alignment._datatype
 
-        phyml.make.Make_Model_Complete(io.mod)
-        phyml.utilities.Set_Model_Name(io.mod)
+        # phyml.make.Make_Model_Complete(io.mod)
+        # phyml.utilities.Set_Model_Name(io.mod)
         if not io.quiet:
             phyml.io.Print_Settings(io)
 

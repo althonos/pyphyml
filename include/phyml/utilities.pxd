@@ -14,6 +14,34 @@ cdef extern from "utilities.h" nogil:
         GENERIC = 2
         UNDEFINED = -1
 
+    cdef enum t_whichmodel:
+        JC69 = 1
+        K80 = 2
+        F81 = 3
+        HKY85 = 4
+        F84 = 5
+        TN93 = 6
+        GTR = 7
+        CUSTOM = 8
+        WAG = 11
+        DAYHOFF = 12
+        JTT = 13
+        BLOSUM62 = 14
+        MTREV = 15
+        RTREV = 16
+        CPREV = 17
+        DCMUT = 18
+        VT = 19
+        MTMAM = 20
+        MTART = 21
+        HIVW = 22
+        HIVB = 23
+        FLU = 24
+        CUSTOMAA = 25
+        LG = 26
+        AB = 27
+        OTHER = 30
+
     # double-precision
     ctypedef double phydbl
     cdef phydbl LOG(phydbl)
@@ -791,16 +819,15 @@ cdef extern from "utilities.h" nogil:
         #                     */
         # int cv_type;      /* Type of cross-validation method */
 
-        # int whichmodel;
-        # int is_mixt_mod;
-        # int augmented;
-        # int ns; /*! number of states (4 for ADN, 20 for AA) */
+        int whichmodel
+        int is_mixt_mod
+        int augmented
+        int ns # number of states (4 for ADN, 20 for AA)
 
         # int use_m4mod; /*! Use a Markov modulated Markov model ? */
 
-        # scalar_dbl *kappa;  /*! transition/transversion rate */
-        # scalar_dbl *lambda; /*! parameter used to define the ts/tv ratios in the F84
-        #                         and TN93 models */
+        scalar_dbl *kappa   # transition/transversion rate 
+        scalar_dbl *lambda_ "lambda" # parameter used to define the ts/tv ratios in the F84 and TN93 models
         # scalar_dbl *br_len_mult; /*! when users want to fix the relative length of
         #                             edges and simply estimate the total length of the
         #                             tree. This multiplier does the trick */
@@ -922,8 +949,8 @@ cdef extern from "utilities.h" nogil:
     # int     Compare_Two_States(char *state1, char *state2, int state_size);
     # void    Copy_One_State(char *from, char *to, int state_size);
     # void    Copy_Dist(phydbl **cpy, phydbl **orig, int n);
-    # t_mod  *Copy_Model(t_mod *ori);
-    # void    Record_Model(t_mod *ori, t_mod *cpy);
+    t_mod*    Copy_Model(t_mod *ori)
+    void      Record_Model(t_mod *ori, t_mod *cpy)
     void      Set_Defaults_Input(option *io)
     void      Set_Defaults_Model(t_mod *mod)
     void      Set_Defaults_Optimiz(t_opt *s_opt)
