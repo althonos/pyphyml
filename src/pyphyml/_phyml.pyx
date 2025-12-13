@@ -4,6 +4,7 @@ from libc.stdlib cimport malloc, calloc, free, srand
 from libc.string cimport strdup, strndup, strcmp
 from libc.time cimport time, time_t
 from libc.float cimport DECIMAL_DIG
+from libc.math cimport NAN
 from libc.stdio cimport (
     printf as PhyML_Printf,
     fprintf as PhyML_Fprintf,
@@ -208,14 +209,45 @@ cdef class Result:
 
 cdef class TreeBuilder:
 
-    cdef readonly int  seed
+    cdef readonly int   seed
+    cdef          float _alpha
 
     def __init__(
         self,
         *,
         int seed = 0,
+        object alpha = 1.0,
     ):
+        """Create a new `TreeBuilder` with the given parameters.
+
+        Keyword Arguments:
+            seed (`int`): The seed to initialize the random number generator
+                with. If a negative number is given, the seed will be 
+                initialized using the system clock.
+            alpha (`float` or `None`): Value of the Gamma distribution shape 
+                parameter. Can be a fixed positive value, or `None` to get the 
+                maximum likelihood estimate.
+
+        """
         self.seed = seed
+        self.alpha = alpha
+
+    @property
+    def alpha(self):
+        """`float` or `None`: The Gamma distribution shape parameter.
+        """
+        if self._alpha == NAN:
+            return None
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, object alpha):
+        if alpha is None:
+            self._alpha = NAN
+        elif alpha < 1e-10:
+            raise ValueError("alpha must be >=1E-10")
+        else:
+            self._alpha = alpha
 
     # ---
 
@@ -250,8 +282,16 @@ cdef class TreeBuilder:
         srand(r_seed)
 
     cdef void _initialize_options(self, t_option* io) except *:
-        # Initialize RNG
+        # initialize RNG (--r_seed flag)
         self._seed_rng(io)
+        
+        # Parameter of the gamma distribution (--alpha flag)
+        if self._alpha == NAN:
+            io.mod.ras.alpha.v = 1.0
+            io.mod.ras.alpha.optimize = True
+        else:
+            io.mod.ras.alpha.v = self._alpha
+            io.mod.ras.alpha.optimize = False
 
     # ---
 

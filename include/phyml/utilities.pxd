@@ -511,6 +511,30 @@ cdef extern from "utilities.h" nogil:
         __RateMatrix *prev
     ctypedef __RateMatrix t_rmat
 
+    cdef struct __RAS:
+        int n_catg
+        int invar
+        int gamma_median
+        vect_dbl *gamma_r_proba
+        vect_dbl *gamma_r_proba_unscaled
+        vect_dbl *gamma_rr
+        vect_dbl *gamma_rr_unscaled
+        scalar_dbl *alpha
+        int         free_mixt_rates
+        scalar_dbl *free_rate_mr
+
+        int         parent_class_number
+        scalar_dbl* pinvar
+        short int init_rr
+        short int init_r_proba
+        short int normalise_rr
+        short int *skip_rate_cat
+        short int sort_rate_classes
+        bint optimize
+        __RAS *next
+        __RAS *prev
+    ctypedef __RAS t_ras
+
     cdef struct __Option:
         __Model*  mod  # pointer to a substitution model
         __Tree*   tree;      # pointer to the current tree 
@@ -752,7 +776,7 @@ cdef extern from "utilities.h" nogil:
         __Model*   prev_mixt
         # struct __RateMatrix *r_mat;
         # struct __EquFreq    *e_frq;
-        # struct __RAS        *ras;
+        __RAS*     ras
 
         # t_string *aa_rate_mat_file;
         # FILE     *fp_aa_rate_mat;
