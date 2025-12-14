@@ -47,13 +47,18 @@ def _apply_patch(s, patch, revert=False):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", required=True)
+parser.add_argument("-i", "--input")
 parser.add_argument("-p", "--patch", required=True)
 parser.add_argument("-o", "--output", required=True)
 args = parser.parse_args()
 
-with open(args.input, "r") as f:
-    in_ = f.read()
+# input may not exist
+if args.input is None:
+    in_ = ""
+else:
+    with open(args.input, "r") as f:
+        in_ = f.read()
+
 with open(args.patch, "r") as f:
     patch = f.read()
 
