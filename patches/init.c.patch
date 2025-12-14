@@ -1,0 +1,16 @@
+diff --git a/src/init.c b/src/init.c
+index 468e846..4ffcb42 100644
+--- a/src/init.c
++++ b/src/init.c
+@@ -11,6 +11,11 @@ the GNU public licence. See http://www.opensource.org for details.
+ */
+ 
+ #include "init.h"
++
++#ifdef HAVE_UNISTD_H
++#include <unistd.h>
++#endif
++
+ #ifdef BEAGLE
+ #include "beagle_utils.h"
+ #endif

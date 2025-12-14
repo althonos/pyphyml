@@ -1,0 +1,65 @@
+diff --git a/src/cl.c b/src/cl.c
+index 2e29f61..5146c1a 100644
+--- a/src/cl.c
++++ b/src/cl.c
+@@ -18,6 +18,9 @@ the GNU public licence. See http://www.opensource.org for details.
+  */
+ int Read_Command_Line(option *io, int argc, char **argv)
+ {
++#if !defined(HAVE_GETOPT_H) || defined(DISABLE_CLI)
++  return 0;
++#else
+   int       c;
+   int       idx;
+   int       i;
+@@ -32,6 +35,7 @@ int Read_Command_Line(option *io, int argc, char **argv)
+          "documentation. \n");
+   PhyML_Printf("", writemode);
+ 
++#ifdef HAVE_GETOPT_H
+   struct option longopts[] = {
+       {"n_rgrft", required_argument, NULL, 0},
+       {"n_globl", required_argument, NULL, 1},
+@@ -134,6 +138,7 @@ int Read_Command_Line(option *io, int argc, char **argv)
+       {"seq_len", required_argument, NULL, 85},
+       {"n_otu", required_argument, NULL, 86},
+       {0, 0, 0, 0}};
++#endif
+ 
+   io->datatype = UNDEFINED;
+ 
+@@ -142,8 +147,12 @@ int Read_Command_Line(option *io, int argc, char **argv)
+   // Find out about the data type first...
+   do
+   {
++#ifdef HAVE_GETOPT_H
+     c = getopt_long(argc, argv, "qi:d:t:m:b:n:f:zk:v:c:a:u:ho:s:x:g:l:ep",
+                     longopts, &idx);
++#else
++    c = -1;
++#endif
+ 
+     switch (c)
+     {
+@@ -178,8 +187,13 @@ int Read_Command_Line(option *io, int argc, char **argv)
+ 
+   do
+   {
++
++#ifdef HAVE_GETOPT_H
+     c = getopt_long(argc, argv, "qi:d:t:m:b:n:f:zk:v:c:a:u:ho:s:x:g:l:ep",
+                     longopts, &idx);
++#else
++    c = -1;
++#endif
+ 
+     switch (c)
+     {
+@@ -1922,6 +1936,7 @@ int Read_Command_Line(option *io, int argc, char **argv)
+   }
+ 
+   return 1;
++#endif
+ }
+ 
+ //////////////////////////////////////////////////////////////

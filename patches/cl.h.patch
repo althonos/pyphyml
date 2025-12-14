@@ -1,0 +1,19 @@
+diff --git a/src/cl.h b/src/cl.h
+index 9540071..039692d 100644
+--- a/src/cl.h
++++ b/src/cl.h
+@@ -16,8 +16,14 @@ the GNU public licence.  See http://www.opensource.org for details.
+ #ifndef CL_H
+ #define CL_H
+ 
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
++
++#ifdef HAVE_GETOPT_H
+ #include <getopt.h>
++#endif
++
+ #include "utilities.h"
+ #include "help.h"
+ #include "models.h"

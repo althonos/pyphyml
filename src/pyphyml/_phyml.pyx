@@ -15,7 +15,6 @@ from libc.stdio cimport (
 cimport phyml.utilities
 cimport phyml.make
 cimport phyml.models
-cimport phyml.cl
 cimport phyml.io
 cimport phyml.init
 cimport phyml.free

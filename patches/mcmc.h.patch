@@ -1,0 +1,15 @@
+diff --git a/src/mcmc.h b/src/mcmc.h
+index 0f97d8c..c4edda9 100644
+--- a/src/mcmc.h
++++ b/src/mcmc.h
+@@ -12,6 +12,10 @@ the GNU public licence. See http://www.opensource.org for details.
+ 
+ #include <config.h>
+ 
++#ifdef HAVE_UNISTD_H
++#include <unistd.h>
++#endif
++
+ #ifndef MCMC_H
+ #define MCMC_H
+ 

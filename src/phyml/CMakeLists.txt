@@ -10,6 +10,7 @@ check_library_exists(m cos ""       HAVE_LIBM)
 
 check_include_file("float.h"        HAVE_FLOAT_H)
 check_include_file("inttypes.h"     HAVE_INTTYPES_H)
+check_include_file("getopt.h"       HAVE_GETOPT_H)
 check_include_file("stdint.h"       HAVE_STDINT_H)
 check_include_file("stdio.h"        HAVE_STDIO_H)
 check_include_file("stdlib.h"       HAVE_STDLIB_H)
@@ -180,7 +181,7 @@ endforeach()
 # --- Build library ------------------------------------------------------------
 
 add_library(phyml STATIC ${PHYML_PATCHED_SOURCES})
-target_compile_definitions(phyml PUBLIC PHYML=1)
+target_compile_definitions(phyml PUBLIC PHYML=1 DISABLE_CLI=1)
 target_include_directories(phyml PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 set_property(TARGET phyml PROPERTY C_STANDARD 99)
 

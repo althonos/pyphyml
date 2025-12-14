@@ -1,0 +1,12 @@
+diff --git a/src/times.c b/src/times.c
+index fa78713..2395e24 100644
+--- a/src/times.c
++++ b/src/times.c
+@@ -14,6 +14,7 @@ the GNU public licence. See http://www.opensource.org for details.
+ /* Routines for molecular clock trees and molecular dating */
+ 
+ #include "times.h"
++#include "date.h"
+ 
+ 
+ //////////////////////////////////////////////////////////////
