@@ -4,7 +4,7 @@ import subprocess
 import io
 import re
 
-RX = re.compile(r"diff --git a/([a-zA-Z_\./]+) b/([a-zA-Z_\./]+)")
+RX = re.compile(r"diff --git a/([0-9a-zA-Z_\./]+) b/([0-9a-zA-Z_\./]+)")
 
 
 parser = argparse.ArgumentParser()
