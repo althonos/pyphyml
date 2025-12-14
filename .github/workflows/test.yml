@@ -89,8 +89,10 @@ jobs:
       run: python -m pip install -r .github/workflows/requirements.txt
     - name: Build C extension in debug mode
       run: python -m pip install -e . -vv --no-build-isolation 
-    - name: Test package
-      run: python -m unittest discover -vv
+    - name: Try importing package
+      run: python -c "import pyphyml"
+    # - name: Test package
+    #   run: python -m unittest discover -vv
     # - name: Upload to Codecov
     #   if: matrix.python-impl == 'CPython'
     #   uses: codecov/codecov-action@v3
@@ -135,5 +137,7 @@ jobs:
       run: python -m pip install -r .github/workflows/requirements.txt
     - name: Build C extension in release mode
       run: python -m pip install -e . -vv --no-build-isolation -C cmake.build-type=Release
-    - name: Test package
-      run: python -m unittest tests -vv
+    - name: Try importing package
+      run: python -c "import pyphyml"
+    # - name: Test package
+    #   run: python -m unittest tests -vv

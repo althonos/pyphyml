@@ -1,7 +1,7 @@
 from cpython.unicode cimport PyUnicode_FromString
 
 from libc.stdlib cimport malloc, calloc, free, srand
-from libc.string cimport strdup, strndup, strcmp
+from libc.string cimport strdup, strcmp
 from libc.time cimport time, time_t
 from libc.float cimport DECIMAL_DIG
 from libc.math cimport NAN
@@ -77,12 +77,12 @@ cdef class Alignment:
 
         for i, (name, seq) in enumerate(zip(names, sequences)):
             # copy name
-            self._data[i].name = strndup(name.encode('utf-8'), len(name)) # FIXME: allow bytes
+            self._data[i].name = strdup(name.encode('utf-8')) # FIXME: allow bytes
             if self._data[i].name is NULL:
                 raise MemoryError
             # copy seq
             self._data[i].len = len(seq)
-            self._data[i].state = strndup(seq.encode('utf-8'), len(seq)) # FIXME: allow bytes
+            self._data[i].state = strdup(seq.encode('utf-8')) # FIXME: allow bytes
             if self._data[i] is NULL:
                 raise MemoryError
             # check length consistency
