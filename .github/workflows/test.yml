@@ -22,9 +22,9 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
-          - "pypy-3.8"
-          - "pypy-3.9"
-          - "pypy-3.10"
+          # - "pypy-3.8"
+          # - "pypy-3.9"
+          # - "pypy-3.10"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -67,9 +67,9 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
-          - "pypy-3.8"
-          - "pypy-3.9"
-          - "pypy-3.10"
+          # - "pypy-3.8"
+          # - "pypy-3.9"
+          # - "pypy-3.10"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -100,40 +100,40 @@ jobs:
     #     fail_ci_if_error: false
     #     token: ${{ secrets.CODECOV_TOKEN }}
 
-  # test_windows:
-  #   name: Test (Windows)
-  #   runs-on: windows-latest
-  #   env:
-  #     OS: Windows
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       python-version:
-  #         - "3.8"
-  #         - "3.9"
-  #         - "3.10"
-  #         - "3.11"
-  #         - "3.12"
-  #         - "3.13"
-  #         - "3.14"
-  #         - "pypy-3.8"
-  #         - "pypy-3.9"
-  #         - "pypy-3.10"
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v4
-  #     with:
-  #       submodules: true
-  #   - name: Setup Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v5
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #       architecture: x64
-  #   - name: Update pip
-  #     run: python -m pip install -U pip wheel setuptools
-  #   - name: Install Python requirements
-  #     run: python -m pip install -r .github/workflows/requirements.txt
-  #   - name: Build C extension in debug mode
-  #     run: python -m pip install -e . -vv --no-build-isolation 
-  #   - name: Test package
-  #     run: python -m unittest tests -vv
+  test_windows:
+    name: Test (Windows)
+    runs-on: windows-latest
+    env:
+      OS: Windows
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+          # - "pypy-3.8"
+          # - "pypy-3.9"
+          # - "pypy-3.10"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: x64
+    - name: Update pip
+      run: python -m pip install -U pip wheel setuptools
+    - name: Install Python requirements
+      run: python -m pip install -r .github/workflows/requirements.txt
+    - name: Build C extension in debug mode
+      run: python -m pip install -e . -vv --no-build-isolation 
+    - name: Test package
+      run: python -m unittest tests -vv
