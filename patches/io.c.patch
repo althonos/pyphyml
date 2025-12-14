@@ -1,5 +1,5 @@
 diff --git a/src/io.c b/src/io.c
-index 443f6ae..c579a96 100644
+index 443f6ae..9d629a4 100644
 --- a/src/io.c
 +++ b/src/io.c
 @@ -13,6 +13,10 @@ the GNU public licence. See http://www.opensource.org for details.
@@ -13,7 +13,21 @@ index 443f6ae..c579a96 100644
  #ifdef BEAGLE
  #include "libhmsbeagle/beagle.h"
  #endif
-@@ -8173,8 +8177,12 @@ void Print_Trace(void)
+@@ -7110,8 +7114,13 @@ t_label *Read_Labels(char *s)
+ 
+     strcpy(label, s_cpy + beg);
+ 
++#ifdef WIN32
++    key = strtok_s(label, "=", &s_small);
++    val = strtok_s(NULL, "=", &s_small);
++#else
+     key = strtok_r(label, "=", &s_small);
+     val = strtok_r(NULL, "=", &s_small);
++#endif
+ 
+     Free(lab->key);
+     lab->key = (char *)mCalloc(strlen(key) + 1, sizeof(char));
+@@ -8173,8 +8182,12 @@ void Print_Trace(void)
    char **strings;
    int    size, i;
  

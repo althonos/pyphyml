@@ -24,6 +24,16 @@
 #cmakedefine HAVE_FLOOR
 #endif
 
+/* Define to 1 if you have the <getopt.h> header file. */
+#ifndef HAVE_GETOPT_H
+#cmakedefine HAVE_GETOPT_H
+#endif
+
+/* Define to 1 if you have the <execinfo.h> header file. */
+#ifndef HAVE_EXECINFO_H
+#cmakedefine HAVE_EXECINFO_H
+#endif
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #ifndef HAVE_INTTYPES_H
 #cmakedefine HAVE_INTTYPES_H
