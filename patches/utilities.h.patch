@@ -1,0 +1,12 @@
+diff --git a/src/utilities.h b/src/utilities.h
+index 8be2e43..545774a 100644
+--- a/src/utilities.h
++++ b/src/utilities.h
+@@ -20,7 +20,6 @@ the GNU public licence. See http://www.opensource.org for details.
+ #include <assert.h>
+ #include <ctype.h>
+ #include <errno.h>
+-#include <execinfo.h>
+ #include <float.h>
+ #include <limits.h>
+ #include <math.h>

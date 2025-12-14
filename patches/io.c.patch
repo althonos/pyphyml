@@ -1,0 +1,28 @@
+diff --git a/src/io.c b/src/io.c
+index 443f6ae..c579a96 100644
+--- a/src/io.c
++++ b/src/io.c
+@@ -13,6 +13,10 @@ the GNU public licence. See http://www.opensource.org for details.
+ #include "io.h"
+ #include "assert.h"
+ 
++#ifdef HAVE_EXECINFO_H
++#include <execinfo.h>
++#endif
++
+ #ifdef BEAGLE
+ #include "libhmsbeagle/beagle.h"
+ #endif
+@@ -8173,8 +8177,12 @@ void Print_Trace(void)
+   char **strings;
+   int    size, i;
+ 
++#ifdef HAVE_EXECINFO_H
+   size    = backtrace(array, 10);
+   strings = backtrace_symbols(array, size);
++#else
++  strings = NULL;
++#endif
+ 
+   if (strings != NULL)
+   {

@@ -1,5 +1,5 @@
 diff --git a/configure.ac b/configure.ac
-index cd08930..f73dd8d 100644
+index cd08930..7bfff31 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -25,7 +25,7 @@ AC_CHECK_LIB([m], [log])
@@ -7,7 +7,7 @@ index cd08930..f73dd8d 100644
  # Checks for header files.
  AC_HEADER_STDC
 -AC_CHECK_HEADERS([float.h stdlib.h string.h unistd.h])
-+AC_CHECK_HEADERS([float.h stdlib.h string.h unistd.h getopt.h])
++AC_CHECK_HEADERS([float.h stdlib.h string.h unistd.h getopt.h execinfo.h])
  
  # Checks for typedefs, structures, and compiler characteristics.
  AC_C_CONST
