@@ -1,6 +1,8 @@
 from libc.stdio cimport FILE
 from libc.time cimport time_t
 
+from .random cimport MTRand
+
 cdef extern from "utilities.h" nogil:
 
     cdef enum t_topo:
@@ -661,7 +663,10 @@ cdef extern from "utilities.h" nogil:
         # int   state_len;
 
         # int curr_interface;
+        
+        MTRand rand
         int r_seed  # random seed
+
         bint collapse_boot; # 0 -> branch length on bootstrap trees are not collapsed if too small
         bint random_boot_seq_order; # !0 -> sequence order in bootstrapped data set is random
         bint print_trace

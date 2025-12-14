@@ -1,8 +1,13 @@
 diff --git a/src/io.c b/src/io.c
-index 443f6ae..9d629a4 100644
+index 443f6ae..1653fe2 100644
 --- a/src/io.c
 +++ b/src/io.c
-@@ -13,6 +13,10 @@ the GNU public licence. See http://www.opensource.org for details.
+@@ -10,9 +10,15 @@ the GNU public licence. See http://www.opensource.org for details.
+ 
+ */
+ 
++#include <string.h>
++
  #include "io.h"
  #include "assert.h"
  
@@ -13,7 +18,101 @@ index 443f6ae..9d629a4 100644
  #ifdef BEAGLE
  #include "libhmsbeagle/beagle.h"
  #endif
-@@ -7110,8 +7114,13 @@ t_label *Read_Labels(char *s)
+@@ -1867,7 +1873,7 @@ void Print_Site(calign *cdata, int num, int n_otu, char *sep, int stepsize,
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Print_Site_Lk(t_tree *tree, FILE *fp)
++void Print_Site_Lk(MTRand* rand, t_tree *tree, FILE *fp)
+ {
+   int    site;
+   int    catg;
+@@ -1879,7 +1885,7 @@ void Print_Site_Lk(t_tree *tree, FILE *fp)
+ 
+   if (tree->is_mixt_tree == YES)
+   {
+-    MIXT_Print_Site_Lk(tree, fp);
++    MIXT_Print_Site_Lk(rand,tree, fp);
+     return;
+   }
+ 
+@@ -2000,7 +2006,7 @@ void Print_Site_Lk(t_tree *tree, FILE *fp)
+ 
+       PhyML_Fprintf(
+           fp, "%-16d",
+-          Number_Of_Diff_States_One_Site(tree->data->sitepatt[site], tree));
++          Number_Of_Diff_States_One_Site(rand,tree->data->sitepatt[site], tree));
+ 
+       PhyML_Fprintf(fp, "\n");
+     }
+@@ -5053,7 +5059,7 @@ option *PhyML_XML(char *xml_filename)
+     Set_Model_Parameters(mixt_tree->mod);
+ 
+     Print_Data_Structure(NO, stdout, mixt_tree);
+-    tree = MIXT_Starting_Tree(mixt_tree);
++    tree = MIXT_Starting_Tree(&io->rand,mixt_tree);
+     Copy_Tree(tree, mixt_tree);
+     Free_Tree(tree);
+ 
+@@ -5062,7 +5068,7 @@ option *PhyML_XML(char *xml_filename)
+     {
+       PhyML_Printf("\n\n. [%3d/%3d]", num_rand_tree + 1,
+                    mixt_tree->io->mod->s_opt->n_rand_starts);
+-      Random_Tree(mixt_tree);
++      Random_Tree(&io->rand, mixt_tree);
+     }
+ 
+     Copy_Tree(mixt_tree, mixt_tree->next);
+@@ -5089,11 +5095,11 @@ option *PhyML_XML(char *xml_filename)
+ 
+     if (mixt_tree->mod->s_opt->opt_topo)
+     {
+-      Global_Spr_Search(mixt_tree);
++      Global_Spr_Search(&io->rand, mixt_tree);
+     }
+     else
+     {
+-      Round_Optimize(mixt_tree, ROUND_MAX);
++      Round_Optimize(&io->rand, mixt_tree, ROUND_MAX);
+     }
+ 
+     PhyML_Printf("\n\n. Log-likelihood = %f", mixt_tree->c_lnL);
+@@ -5122,7 +5128,7 @@ option *PhyML_XML(char *xml_filename)
+       if (most_likely_tree) Free(most_likely_tree);
+       if (io->ratio_test) 
+       {
+-        aLRT(mixt_tree);
++        aLRT(&io->rand, mixt_tree);
+         Collect_Edge_Support_Values(mixt_tree);
+       }
+       
+@@ -5142,14 +5148,14 @@ option *PhyML_XML(char *xml_filename)
+     do
+     {
+       if (tree->io->print_site_lnl == YES)
+-        Print_Site_Lk(tree, tree->io->fp_out_lk);
++        Print_Site_Lk(&io->rand, tree, tree->io->fp_out_lk);
+       tree = tree->next_mixt;
+     } while (tree);
+ 
+     MIXT_Init_T_End(mixt_tree);
+     Print_Data_Structure(YES, mixt_tree->io->fp_out_stats, mixt_tree);
+ 
+-    MIXT_Cv(mixt_tree);
++    MIXT_Cv(&io->rand,mixt_tree);
+ 
+     Free_Best_Spr(mixt_tree);
+     Free_Spr_List_One_Edge(mixt_tree);
+@@ -5165,7 +5171,7 @@ option *PhyML_XML(char *xml_filename)
+   PhyML_Fprintf(mixt_tree->io->fp_out_tree, "%s\n", most_likely_tree);
+ 
+   /*! Bootstrap analysis */
+-  MIXT_Bootstrap(most_likely_tree, xml_root);
++  MIXT_Bootstrap(&io->rand, most_likely_tree, xml_root);
+ 
+   while (io->prev != NULL) io = io->prev;
+ 
+@@ -7110,8 +7116,13 @@ t_label *Read_Labels(char *s)
  
      strcpy(label, s_cpy + beg);
  
@@ -27,7 +126,7 @@ index 443f6ae..9d629a4 100644
  
      Free(lab->key);
      lab->key = (char *)mCalloc(strlen(key) + 1, sizeof(char));
-@@ -8173,8 +8182,12 @@ void Print_Trace(void)
+@@ -8173,8 +8184,12 @@ void Print_Trace(void)
    char **strings;
    int    size, i;
  

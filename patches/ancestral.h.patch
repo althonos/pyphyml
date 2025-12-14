@@ -1,0 +1,22 @@
+diff --git a/src/ancestral.h b/src/ancestral.h
+index 74f1070..7d0385a 100644
+--- a/src/ancestral.h
++++ b/src/ancestral.h
+@@ -18,13 +18,13 @@ the GNU public licence. See http://www.opensource.org for details.
+ #include "utilities.h"
+ 
+ 
+-void Sample_Ancestral_Seq(int fullmutmap, int fromprior, t_tree *tree);
+-void Sample_Ancestral_Seq_Pre(t_node *a, t_node *d, t_edge *b,
++void Sample_Ancestral_Seq(MTRand* rand, int fullmutmap, int fromprior, t_tree *tree);
++void Sample_Ancestral_Seq_Pre(MTRand* rand, t_node *a, t_node *d, t_edge *b,
+                               int site, int r_cat,
+                               int *muttype, phydbl *muttime, int *muttax, int *n_mut,
+                               int fullmutmap, int fromprior, t_tree *tree);
+-int Sample_Ancestral_Seq_Core(t_node *a, t_node *d, t_edge *b, int r_cat, int site, t_tree *tree);
+-void Map_Mutations(t_node *a, t_node *d, int sa, int sd, t_edge *b, int site, int rcat, int *muttype, phydbl *muttime, int *muttax, int *n_mut, t_tree *tree);
++int Sample_Ancestral_Seq_Core(MTRand* rand, t_node *a, t_node *d, t_edge *b, int r_cat, int site, t_tree *tree);
++void Map_Mutations(MTRand* rand, t_node *a, t_node *d, int sa, int sd, t_edge *b, int site, int rcat, int *muttype, phydbl *muttime, int *muttax, int *n_mut, t_tree *tree);
+ void Ancestral_Sequences(t_tree *tree, int print);
+ void Ancestral_Sequences_One_Node(t_node *d, t_tree *tree, int print);
+ int MPEE_Score(const phydbl *alpha, int *idx, const phydbl *p, const int ns);

@@ -1,0 +1,13 @@
+diff --git a/src/xml.h b/src/xml.h
+index 21cee4a..cf69d2d 100644
+--- a/src/xml.h
++++ b/src/xml.h
+@@ -43,7 +43,7 @@ t_tree   *XML_Process_Base(char *xml_filename);
+ int       XML_Number_Of_Taxa_In_Clade(xml_node *n_clade);
+ char    **XML_Read_Clade(xml_node *n_clade, t_tree *tree);
+ void      DATE_XML(char *xml_filename);
+-void      XML_Read_Calibration(xml_node *root, t_tree *tree);
++void      XML_Read_Calibration(MTRand* rand, xml_node *root, t_tree *tree);
+ int       XML_Add_Attribute(xml_node *n, char *attr_name, char *attr_value);
+ xml_node *XML_Add_Node(xml_node *parent, char *nd_name);
+ void      XML_Write_Node_Value(FILE *fp, char *indent, xml_node *n);

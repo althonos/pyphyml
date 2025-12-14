@@ -1,0 +1,13 @@
+diff --git a/src/make.c b/src/make.c
+index 14f6bbf..d116d62 100644
+--- a/src/make.c
++++ b/src/make.c
+@@ -312,7 +312,7 @@ align **Make_Empty_Alignment(option *io)
+     data[i]->is_ambigu = NULL;
+     data[i]->len       = 0;
+ 
+-    Random_String(data[i]->name, 5);
++    Random_String(&io->rand, data[i]->name, 5);
+ 
+     while (data[i]->len < io->init_len * io->state_len)
+     {

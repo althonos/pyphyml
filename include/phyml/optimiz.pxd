@@ -1,3 +1,4 @@
+from .random cimport MTRand
 from .utilities cimport t_tree
 
 cdef extern from "optimiz.h" nogil:
@@ -6,7 +7,7 @@ cdef extern from "optimiz.h" nogil:
     # void   Optimize_Param_Parall(t_tree *tree);
     # phydbl Optimize_Branch_Quad(t_tree *tree, calign *cdata, t_edge *b_fcus);
     # void   Optimize_After_Hide(t_tree *tree, calign *cdata, t_node *h);
-    void     Round_Optimize(t_tree *tree, int n_round_max)
+    void     Round_Optimize(MTRand* rand, t_tree *tree, int n_round_max)
     # int    Dist_Seq_Brak(phydbl *ax, phydbl *bx, phydbl *cx, phydbl *fa, phydbl *fb,
     #                      phydbl *fc, calign *data, int num1, int num2, t_mod *mod);
     # phydbl Dist_Seq_Brent(phydbl ax, phydbl bx, phydbl cx, phydbl tol, phydbl *xmin,

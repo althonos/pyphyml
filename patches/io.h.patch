@@ -1,0 +1,13 @@
+diff --git a/src/io.h b/src/io.h
+index 7a09ad8..6638cd7 100644
+--- a/src/io.h
++++ b/src/io.h
+@@ -41,7 +41,7 @@ align **Read_Seq_Interleaved(option *io);
+ int Read_One_Line_Seq(align ***data,int num_otu,FILE *in);
+ char *Return_Tree_String_Phylip(FILE *fp_input_tree);
+ t_tree *Read_Tree_File_Phylip(FILE *fp_input_tree);
+-void Print_Site_Lk(t_tree *tree,FILE *fp);
++void Print_Site_Lk(MTRand* rand, t_tree *tree,FILE *fp);
+ void Print_Seq(FILE *fp, align **data, int n_otu);
+ void Print_CSeq(FILE *fp,int compressed,calign *cdata,t_tree *tree);
+ void Print_CSeq_Select(FILE *fp,int compressed,calign *cdata,t_tree *tree);

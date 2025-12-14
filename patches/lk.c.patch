@@ -1,0 +1,58 @@
+diff --git a/src/lk.c b/src/lk.c
+index 56493ca..71c528e 100644
+--- a/src/lk.c
++++ b/src/lk.c
+@@ -2806,7 +2806,7 @@ void Pull_Scaling_Factors(int site, t_edge *b, t_tree *tree)
+ 
+ // Tree should be ready for likelihood analysis when calling
+ // this function.
+- void Stepwise_Add_Lk(t_tree *tree)
++ void Stepwise_Add_Lk(MTRand* rand, t_tree *tree)
+  {
+    t_edge **residuals,**targets,*best_target;
+   int *nd_idx,i,j,n_targets,*tg_idx,n_opt;
+@@ -2814,7 +2814,7 @@ void Pull_Scaling_Factors(int site, t_edge *b, t_tree *tree)
+   residuals   = (t_edge **)mCalloc(tree->n_otu-3,sizeof(t_edge *));
+   targets     = (t_edge **)mCalloc(2*tree->n_otu-3,sizeof(t_edge *));
+   best_target = NULL;
+-  nd_idx      = Permutate(tree->n_otu-3);
++  nd_idx      = Permutate(rand, tree->n_otu-3);
+ 
+   // Remove all tips except that corresponding to a_nodes[0], 
+   // a_nodes[1] and a_nodes[2].  
+@@ -2841,7 +2841,7 @@ void Pull_Scaling_Factors(int site, t_edge *b, t_tree *tree)
+ 
+       tree->best_lnL = UNLIKELY;
+       best_target    = NULL;
+-      tg_idx         = Permutate(n_targets);
++      tg_idx         = Permutate(rand, n_targets);
+ 
+       for(j=0;j<n_targets;j++)
+         {
+@@ -2889,7 +2889,7 @@ void Pull_Scaling_Factors(int site, t_edge *b, t_tree *tree)
+       n_targets+=2;
+     }
+ 
+-  Round_Optimize(tree,5);
++  Round_Optimize(rand,tree,5);
+   PhyML_Fprintf(stderr,"\n. lk: %f",tree->c_lnL);
+   Exit("\n");
+ 
+@@ -3409,7 +3409,7 @@ void Partial_Lk_Exin(const phydbl *Pij1, const int state1, const phydbl *Pij2, c
+ 
+ 
+ /* log(Variance) = log_var_multiplier + log(dt) */
+-phydbl Sample_Ancestral_Trait_Contmod(t_node *a, t_node *d, phydbl t_za, phydbl t_zd, phydbl log_var_multiplier, int print, t_tree *tree)
++phydbl Sample_Ancestral_Trait_Contmod(MTRand* rand, t_node *a, t_node *d, phydbl t_za, phydbl t_zd, phydbl log_var_multiplier, int print, t_tree *tree)
+ {
+   /*     
+          a
+@@ -3475,7 +3475,7 @@ phydbl Sample_Ancestral_Trait_Contmod(t_node *a, t_node *d, phydbl t_za, phydbl
+   assert(isnan(sd) == NO && isinf(sd) == NO);
+   assert(isnan(mean) == NO && isinf(mean) == NO);
+   
+-  return(Rnorm(mean,sd));
++  return(Rnorm(rand, mean,sd));
+ }
+ 
+ //////////////////////////////////////////////////////////////

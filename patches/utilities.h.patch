@@ -1,5 +1,5 @@
 diff --git a/src/utilities.h b/src/utilities.h
-index 8be2e43..545774a 100644
+index 8be2e43..9d6d60a 100644
 --- a/src/utilities.h
 +++ b/src/utilities.h
 @@ -20,7 +20,6 @@ the GNU public licence. See http://www.opensource.org for details.
@@ -10,3 +10,135 @@ index 8be2e43..545774a 100644
  #include <float.h>
  #include <limits.h>
  #include <math.h>
+@@ -33,6 +32,7 @@ the GNU public licence. See http://www.opensource.org for details.
+ #include <time.h>
+ /* #include <malloc/malloc.h> */
+ /* #include <malloc.h> */
++#include "random.h"
+ 
+ #if (defined(__AVX__) || defined(__AVX2__))
+ #include <immintrin.h>
+@@ -1492,7 +1492,10 @@ typedef struct __Option
+   int   state_len;
+ 
+   int curr_interface;
+-  int r_seed;        /*! random seed */
++  
++  int r_seed;       /*! random seed */
++  MTRand rand;      /*! random number generator */
++
+   int collapse_boot; /*! 0 -> branch length on bootstrap trees are not collapsed
+                         if too small */
+   int random_boot_seq_order; /*! !0 -> sequence order in bootstrapped data set
+@@ -2585,7 +2588,7 @@ int     Assign_State(char *c, int datatype, int stepsize);
+ char    Reciproc_Assign_State(int i_state, int datatype);
+ int     Assign_State_With_Ambiguity(char *c, int datatype, int stepsize);
+ void    Clean_Tree_Connections(t_tree *tree);
+-void    Bootstrap(t_tree *tree);
++void    Bootstrap(MTRand* rand, t_tree *tree);
+ void    Br_Len_Involving_Invar(t_tree *tree);
+ void    Br_Len_Not_Involving_Invar(t_tree *tree);
+ void    Getstring_Stdin(char *s);
+@@ -2663,9 +2666,9 @@ void    Get_List_Of_Adjacent_Targets(t_node *a, t_node *d, t_node ***node_list,
+                                      int curr_depth, int max_depth);
+ void    Sort_List_Of_Adjacent_Targets(t_edge ***list, int list_size);
+ t_node *Common_Nodes_Btw_Two_Edges(t_edge *a, t_edge *b);
+-void    Random_Tree(t_tree *tree);
++void    Random_Tree(MTRand* rand, t_tree *tree);
+ void    Reorganize_Edges_Given_Lk_Struct(t_tree *tree);
+-void    Random_NNI(int n_moves, t_tree *tree);
++void    Random_NNI(MTRand* rand, int n_moves, t_tree *tree);
+ void    Fill_Missing_Dist(matrix *mat);
+ void    Fill_Missing_Dist_XY(int x, int y, matrix *mat);
+ phydbl  Least_Square_Missing_Dist_XY(int x, int y, phydbl dxy, matrix *mat);
+@@ -2674,12 +2677,12 @@ int     Get_State_From_P_Lk(phydbl *p_lk, int pos, t_tree *tree);
+ int     Get_State_From_P_Pars(short int *p_pars, int pos, t_tree *tree);
+ void    Check_Dirs(t_tree *tree);
+ void    Warn_And_Exit(const char *s);
+-void    Randomize_Sequence_Order(calign *cdata);
++void    Randomize_Sequence_Order(MTRand* rand, calign *cdata);
+ void    Update_Root_Pos(t_tree *tree);
+ void    Add_Root(t_edge *target, t_tree *tree);
+ void    Update_Ancestors(t_node *a, t_node *d, t_edge *b, t_tree *tree);
+ #if (defined PHYTIME || defined SERGEII)
+-t_tree *Generate_Random_Tree_From_Scratch(int n_otu, int rooted);
++t_tree *Generate_Random_Tree_From_Scratch(MTRand* rand, int n_otu, int rooted);
+ #endif
+ void    Random_Lineage_Rates(t_node *a, t_node *d, t_edge *b, phydbl stick_prob,
+                              phydbl *rates, int curr_rate, int n_rates,
+@@ -2691,7 +2694,7 @@ void    Site_Diversity_Pre(t_node *a, t_node *d, t_edge *b, t_tree *tree);
+ void    Subtree_Union(t_node *n, t_edge *b_fcus, t_tree *tree);
+ void    Binary_Decomposition(int value, int *bit_vect, int size);
+ void    Print_Diversity_Header(FILE *fp, t_tree *tree);
+-void    Best_Of_NNI_And_SPR(t_tree *tree);
++void    Best_Of_NNI_And_SPR(MTRand* rand, t_tree *tree);
+ int     Polint(phydbl *xa, phydbl *ya, int n, phydbl x, phydbl *y, phydbl *dy);
+ t_tree *Dist_And_BioNJ(calign *cdata, t_mod *mod, option *io);
+ void    Add_BioNJ_Branch_Lengths(t_tree *tree, calign *cdata, t_mod *mod,
+@@ -2780,18 +2783,23 @@ phydbl *Dist_Btw_Tips(t_tree *tree);
+ void    Best_Root_Position_IL_Model(t_tree *tree);
+ void    Set_Br_Len_Var(t_edge *b, t_tree *tree);
+ void    Check_Br_Lens(t_tree *tree);
+-void    Calculate_Number_Of_Diff_States_Post(t_node *a, t_node *d, t_edge *b,
++void    Calculate_Number_Of_Diff_States_Post(MTRand* rand,
++                                             t_node *a, t_node *d, t_edge *b,
+                                              t_tree *tree);
+-void    Calculate_Number_Of_Diff_States_Pre(t_node *a, t_node *d, t_edge *b,
++void    Calculate_Number_Of_Diff_States_Pre(MTRand* rand,
++                                            t_node *a, t_node *d, t_edge *b,
+                                             t_tree *tree);
+-void    Calculate_Number_Of_Diff_States_Core(t_node *a, t_node *d, t_edge *b,
++void    Calculate_Number_Of_Diff_States_Core(MTRand* rand,
++                                             t_node *a, t_node *d, t_edge *b,
+                                              t_tree *tree);
+-void    Calculate_Number_Of_Diff_States(t_tree *tree);
+-void    Build_Distrib_Number_Of_Diff_States_Under_Model(t_tree *tree);
+-int     Number_Of_Diff_States_One_Site(int site, t_tree *tree);
+-void    Number_Of_Diff_States_One_Site_Post(t_node *a, t_node *d, t_edge *b,
++void    Calculate_Number_Of_Diff_States(MTRand* rand, t_tree *tree);
++void    Build_Distrib_Number_Of_Diff_States_Under_Model(MTRand* rand, t_tree *tree);
++int     Number_Of_Diff_States_One_Site(MTRand* rand, int site, t_tree *tree);
++void    Number_Of_Diff_States_One_Site_Post(MTRand* rand,
++                                            t_node *a, t_node *d, t_edge *b,
+                                             int site, t_tree *tree);
+-int     Number_Of_Diff_States_One_Site_Core(t_node *a, t_node *d, t_edge *b,
++int     Number_Of_Diff_States_One_Site_Core(MTRand* rand,
++                                            t_node *a, t_node *d, t_edge *b,
+                                             int site, t_tree *tree);
+ phydbl  Get_Lk(t_tree *tree);
+ phydbl  Get_d2Lk(t_tree *tree);
+@@ -2821,7 +2829,7 @@ void Push_Bottom_Linked_List(void *what, t_ll **list, bool remove_duplicates);
+ void Remove_From_Linked_List(t_ll *elem, void *val, t_ll **list);
+ int  Linked_List_Len(t_ll *list);
+ void   *Linked_List_Elem(int pos, t_ll *ll);
+-void    Randomize_Tree(t_tree *tree, int n_prune_regraft);
++void    Randomize_Tree(MTRand* rand, t_tree *tree, int n_prune_regraft);
+ t_ll   *Get_List_Of_Reachable_Tips(t_node *a, t_node *d, t_tree *tree);
+ void    Get_List_Of_Reachable_Tips_Post(t_node *a, t_node *d, t_ll **list,
+                                         t_tree *tree);
+@@ -2829,7 +2837,8 @@ phydbl  Length_Of_Path_Between_List_Of_Tips(t_ll *tips0, t_ll *tips1,
+                                             matrix *mat);
+ void    Set_Update_Eigen_Lr(int yn, t_tree *tree);
+ void    Set_Use_Eigen_Lr(int yn, t_tree *tree);
+-void    Random_Walk_Along_Tree_On_Radius(t_node *a, t_node *d, t_edge *b,
++void    Random_Walk_Along_Tree_On_Radius(MTRand* rand,
++                                         t_node *a, t_node *d, t_edge *b,
+                                          phydbl *radius, t_edge **target_edge,
+                                          t_node **target_nd, phydbl *target_time,
+                                          t_tree *tree);
+@@ -2848,14 +2857,11 @@ void      Alias_Subpatt_Pre(t_node *a, t_node *d, t_tree *tree);
+ void      Alias_Subpatt_Post(t_node *a, t_node *d, t_tree *tree);
+ void      Alias_One_Subpatt(t_node *a, t_node *d, t_tree *tree);
+ void      Alias_Subpatt(t_tree *tree);
+-void   Map_Mutations(t_node *a, t_node *d, int sa, int sd, t_edge *b, int site,
+-                     int rcat, int *muttype, phydbl *muttime, int *muttax,
+-                     int *n_mut, t_tree *tree);
+ void   Set_Update_Eigen(int yesno, t_mod *mod);
+ int   *Order_Int(const int *u, const int n);
+ int   *Order_Dbl(const phydbl *u, const int n);
+ char   Integer_To_IUPAC_Code(int x);
+-void   Shuffle_Sites(const phydbl prop, align **data, const int n_otu);
++void   Shuffle_Sites(MTRand* rand, const phydbl prop, align **data, const int n_otu);
+ void   Multiply_Scalar_Dbl(phydbl mult, scalar_dbl *x);
+ void   Insert_Duplicates(t_tree *tree);
+ void   Get_Node_Ranks_From_Dist_To_Root(t_tree *tree);

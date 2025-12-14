@@ -1,0 +1,140 @@
+diff --git a/src/m4.c b/src/m4.c
+index 22fb9ad..b9e9b7f 100644
+--- a/src/m4.c
++++ b/src/m4.c
+@@ -50,7 +50,7 @@ int M4_main(int argc, char **argv)
+ 
+   io     = (option *)Get_Input(argc, argv);
+   r_seed = (io->r_seed < 0) ? (time(NULL)) : (io->r_seed);
+-  srand(r_seed);
++  MTRand_Seed(&io->rand, r_seed);
+   io->r_seed = r_seed;
+ 
+   if (io->in_tree == 2)
+@@ -134,7 +134,7 @@ int M4_main(int argc, char **argv)
+ 
+           Set_Both_Sides(YES, tree);
+ 
+-          if (mod->s_opt->random_input_tree) Random_Tree(tree);
++          if (mod->s_opt->random_input_tree) Random_Tree(&io->rand, tree);
+ 
+           if ((!num_data_set) && (!num_tree) && (!num_rand_tree))
+             Check_Memory_Amount(tree);
+@@ -155,15 +155,15 @@ int M4_main(int argc, char **argv)
+             if (tree->mod->s_opt->topo_search == NNI_MOVE)
+               Simu_Loop(tree);
+             else if (tree->mod->s_opt->topo_search == SPR_MOVE)
+-              Global_Spr_Search(tree);
++              Global_Spr_Search(&io->rand, tree);
+             else
+-              Best_Of_NNI_And_SPR(tree);
++              Best_Of_NNI_And_SPR(&io->rand, tree);
+           }
+           else
+           {
+             if (tree->mod->s_opt->opt_subst_param ||
+                 tree->mod->s_opt->opt_bl_one_by_one)
+-              Round_Optimize(tree, ROUND_MAX);
++              Round_Optimize(&io->rand, tree, ROUND_MAX);
+             else
+               Lk(NULL, tree);
+           }
+@@ -212,7 +212,7 @@ int M4_main(int argc, char **argv)
+                                                              : (num_tree),
+                        YES, io->precision);
+ 
+-          if (tree->io->print_site_lnl) Print_Site_Lk(tree, io->fp_out_lk);
++          if (tree->io->print_site_lnl) Print_Site_Lk(&io->rand, tree, io->fp_out_lk);
+ 
+           /* Start from BioNJ tree */
+           if ((num_rand_tree == io->mod->s_opt->n_rand_starts - 1) &&
+@@ -1165,7 +1165,7 @@ phydbl **M4_Site_Branch_Classification(phydbl ***post_probs, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void M4_Site_Branch_Classification_Experiment(t_tree *tree)
++void M4_Site_Branch_Classification_Experiment(MTRand* rand, t_tree *tree)
+ {
+   calign     *cpy_data;
+   short int **true_rclass, **est_rclass;
+@@ -1197,7 +1197,7 @@ void M4_Site_Branch_Classification_Experiment(t_tree *tree)
+   /* Generate a simulated data set under H0, with the right sequence length. */
+   PhyML_Printf("\n. Evolving sequences (delta=%f, alpha=%f) ...\n",
+                tree->mod->m4mod->delta->v, tree->mod->m4mod->alpha->v);
+-  EVOLVE_Seq(cpy_data, tree->mod, NULL, tree);
++  EVOLVE_Seq(rand, cpy_data, tree->mod, NULL, tree);
+ 
+   for (j = 0; j < 2 * tree->n_otu - 3; ++j)
+   {
+@@ -1246,7 +1246,7 @@ void M4_Site_Branch_Classification_Experiment(t_tree *tree)
+     PhyML_Printf("\n. Estimating model parameters...\n");
+     tree->mod->m4mod->alpha->optimize = YES;
+     tree->mod->m4mod->delta->optimize = YES;
+-    Round_Optimize(tree, ROUND_MAX);
++    Round_Optimize(rand, tree, ROUND_MAX);
+ 
+     tree->both_sides = 1;
+     Lk(NULL, tree);
+@@ -1389,7 +1389,7 @@ void M4_Free_Integral_Term_On_One_Edge(phydbl ****integral, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void M4_Detect_Site_Switches_Experiment(t_tree *tree)
++void M4_Detect_Site_Switches_Experiment(MTRand* rand, t_tree *tree)
+ {
+   t_mod  *nocov_mod, *cov_mod, *ori_mod;
+   calign *ori_data, *cpy_data;
+@@ -1442,7 +1442,7 @@ void M4_Detect_Site_Switches_Experiment(t_tree *tree)
+ 
+   /* Generate a simulated data set under H0, with the right sequence length. */
+   tree->mod = nocov_mod;
+-  EVOLVE_Seq(cpy_data, nocov_mod, NULL, tree);
++  EVOLVE_Seq(rand, cpy_data, nocov_mod, NULL, tree);
+ 
+   /* Generate the memory needed for likelihood calculation because
+      we will need bigger arrays
+@@ -1470,7 +1470,7 @@ void M4_Detect_Site_Switches_Experiment(t_tree *tree)
+         Update_PMat_At_Given_Edge(tree->a_edges[i], tree);
+ 
+     /* Generate sequences */
+-    EVOLVE_Seq(cpy_data, nocov_mod, NULL, tree);
++    EVOLVE_Seq(rand, cpy_data, nocov_mod, NULL, tree);
+     tree->data = cpy_data;
+ 
+     if (tree->mod->s_opt->greedy)
+@@ -1531,7 +1531,7 @@ void M4_Detect_Site_Switches_Experiment(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void M4_Posterior_Prediction_Experiment(t_tree *tree)
++void M4_Posterior_Prediction_Experiment(MTRand* rand, t_tree *tree)
+ {
+   calign *ori_data, *cpy_data;
+   int     i, n_iter, n_simul;
+@@ -1570,7 +1570,7 @@ void M4_Posterior_Prediction_Experiment(t_tree *tree)
+   /* Generate a simulated data set under H0, with the right sequence length. */
+   Set_Model_Parameters(tree->mod);
+   For(i, 2 * tree->n_otu - 3) Update_PMat_At_Given_Edge(tree->a_edges[i], tree);
+-  EVOLVE_Seq(cpy_data, tree->mod, NULL, tree);
++  EVOLVE_Seq(rand, cpy_data, tree->mod, NULL, tree);
+ 
+   /* Generate the memory needed for likelihood calculation because
+      we will need bigger arrays
+@@ -1619,7 +1619,7 @@ void M4_Posterior_Prediction_Experiment(t_tree *tree)
+   n_iter  = 0;
+   do
+   {
+-    EVOLVE_Seq(cpy_data, tree->mod, NULL, tree);
++    EVOLVE_Seq(rand, cpy_data, tree->mod, NULL, tree);
+ 
+     tree->data            = cpy_data;
+     tree->data->n_pattern = cpy_data->init_len;
+@@ -1658,7 +1658,7 @@ void M4_Posterior_Prediction_Experiment(t_tree *tree)
+   n_iter = 0;
+   do
+   {
+-    EVOLVE_Seq(cpy_data, tree->mod, NULL, tree);
++    EVOLVE_Seq(rand, cpy_data, tree->mod, NULL, tree);
+ 
+     tree->data            = cpy_data;
+     tree->data->n_pattern = cpy_data->init_len;

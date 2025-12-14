@@ -1,0 +1,191 @@
+diff --git a/src/mixt.c b/src/mixt.c
+index 289a792..8ba89f5 100644
+--- a/src/mixt.c
++++ b/src/mixt.c
+@@ -1971,7 +1971,7 @@ int MIXT_Pars(t_edge *mixt_b, t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void MIXT_Bootstrap(char *best_tree, xml_node *root)
++void MIXT_Bootstrap(MTRand* rand, char *best_tree, xml_node *root)
+ {
+   xml_node *n, *p_elem;
+   char     *bootstrap;
+@@ -2076,7 +2076,7 @@ void MIXT_Bootstrap(char *best_tree, xml_node *root)
+         /*! Bootstrap resampling: sample from original and put in boot */
+         for (j = 0; j < boot_data[0]->len; ++j)
+         {
+-          position = Rand_Int(0, (int)(boot_data[0]->len - 1.0));
++          position = Rand_Int(rand, 0, (int)(boot_data[0]->len - 1.0));
+           for (k = 0; k < io->n_otu; ++k)
+             boot_data[k]->state[j] = orig_data[k]->state[position];
+         }
+@@ -2459,7 +2459,7 @@ void MIXT_Check_Model_Validity(t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-t_tree *MIXT_Starting_Tree(t_tree *mixt_tree)
++t_tree *MIXT_Starting_Tree(MTRand* rand, t_tree *mixt_tree)
+ {
+   t_tree *tree;
+ 
+@@ -2493,7 +2493,7 @@ t_tree *MIXT_Starting_Tree(t_tree *mixt_tree)
+   else
+   {
+     tree = Make_Tree_From_Scratch(mixt_tree->n_otu, mixt_tree->data);
+-    Random_Tree(tree);
++    Random_Tree(rand, tree);
+   }
+ 
+   return tree;
+@@ -2549,7 +2549,7 @@ void MIXT_Init_T_End(t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void MIXT_Prepare_All(int num_rand_tree, t_tree *mixt_tree)
++void MIXT_Prepare_All(MTRand* rand, int num_rand_tree, t_tree *mixt_tree)
+ {
+   t_tree *tree;
+ 
+@@ -2557,7 +2557,7 @@ void MIXT_Prepare_All(int num_rand_tree, t_tree *mixt_tree)
+   Init_Model(mixt_tree->mod->io->cdata, mixt_tree->mod, mixt_tree->mod->io);
+   Set_Model_Parameters(mixt_tree->mod);
+   Print_Data_Structure(NO, stdout, mixt_tree);
+-  tree = MIXT_Starting_Tree(mixt_tree);
++  tree = MIXT_Starting_Tree(rand, mixt_tree);
+   Copy_Tree(tree, mixt_tree);
+   Free_Tree(tree);
+ 
+@@ -2565,7 +2565,7 @@ void MIXT_Prepare_All(int num_rand_tree, t_tree *mixt_tree)
+   {
+     PhyML_Printf("\n\n. [%3d/%3d]", num_rand_tree + 1,
+                  mixt_tree->io->mod->s_opt->n_rand_starts);
+-    Random_Tree(mixt_tree);
++    Random_Tree(rand, mixt_tree);
+   }
+ 
+   MIXT_Connect_Cseqs_To_Nodes(mixt_tree);
+@@ -3556,7 +3556,7 @@ void MIXT_Set_Use_Eigen_Lr(int yn, t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void MIXT_Sample_Ancestral_Seq(int fullmutmap, int fromprior, t_tree *mixt_tree)
++void MIXT_Sample_Ancestral_Seq(MTRand* rand, int fullmutmap, int fromprior, t_tree *mixt_tree)
+ {
+   t_tree *tree, *loc_mixt_tree;
+   phydbl  r_mat_weight_sum, e_frq_weight_sum, sum_probas, *class_proba;
+@@ -3599,7 +3599,7 @@ void MIXT_Sample_Ancestral_Seq(int fullmutmap, int fromprior, t_tree *mixt_tree)
+     } while (tree && tree->is_mixt_tree == NO);
+ 
+     tree = loc_mixt_tree->next;
+-    i    = Sample_i_With_Proba_pi(class_proba, i);
++    i    = Sample_i_With_Proba_pi(rand, class_proba, i);
+ 
+     do
+     {
+@@ -3611,7 +3611,7 @@ void MIXT_Sample_Ancestral_Seq(int fullmutmap, int fromprior, t_tree *mixt_tree)
+ 
+     assert(tree->is_mixt_tree == NO);
+ 
+-    Sample_Ancestral_Seq(fullmutmap, fromprior, tree);
++    Sample_Ancestral_Seq(rand, fullmutmap, fromprior, tree);
+ 
+     Free(class_proba);
+ 
+@@ -3902,7 +3902,7 @@ t_tree *MIXT_Duplicate_Tree(t_tree *ori)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void MIXT_Print_Site_Lk(t_tree *mixt_tree, FILE *fp)
++void MIXT_Print_Site_Lk(MTRand* rand, t_tree *mixt_tree, FILE *fp)
+ {
+   t_tree *tree;
+   int     site, catg;
+@@ -4058,7 +4058,7 @@ void MIXT_Print_Site_Lk(t_tree *mixt_tree, FILE *fp)
+         assert(mixt_tree->next != NULL);
+ 
+         PhyML_Fprintf(fp, "%-16d",
+-                      Number_Of_Diff_States_One_Site(
++                      Number_Of_Diff_States_One_Site(rand,
+                           mixt_tree->data->sitepatt[site], mixt_tree->next));
+ 
+         PhyML_Fprintf(fp, "\n");
+@@ -4147,7 +4147,7 @@ void MIXT_Repeat_Task(void (*Task_Function)(t_tree *tree), t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void MIXT_Cv(t_tree *mixt_tree)
++void MIXT_Cv(MTRand* rand, t_tree *mixt_tree)
+ {
+   PhyML_Printf("\n");
+   
+@@ -4156,13 +4156,13 @@ void MIXT_Cv(t_tree *mixt_tree)
+   case KFOLD_POS : 
+   {
+     PhyML_Printf("\n. Performing K-fold cross-validation\n");
+-    MIXT_Kfold_Pos_Cv(mixt_tree);
++    MIXT_Kfold_Pos_Cv(rand,mixt_tree);
+     break;
+   }
+   case KFOLD_COL:
+   {
+     PhyML_Printf("\n. Performing leave-one-column-out cross-validation\n");
+-    MIXT_Kfold_Col_Cv(mixt_tree);
++    MIXT_Kfold_Col_Cv(rand, mixt_tree);
+     break;
+   }
+   case MAXFOLD:
+@@ -4276,7 +4276,7 @@ void MIXT_Maxfold_Cv(t_tree *mixt_tree)
+ // topology + edge length + etc.). The log-likelihood of the tree is computed 
+ // at each masked position, for the actual character observed at each of these positions. 
+ // We also calculate here the probabity of each character and provide the area under the ROC curve.
+-void MIXT_Kfold_Pos_Cv(t_tree *mixt_tree)
++void MIXT_Kfold_Pos_Cv(MTRand* rand, t_tree *mixt_tree)
+ {
+   phydbl    *state_probs, *site_loglk, *weights;
+   short int *truth;
+@@ -4305,7 +4305,7 @@ void MIXT_Kfold_Pos_Cv(t_tree *mixt_tree)
+ 
+         // Hide characters in the original alignment uniformly at random
+         // CV_Hide_Align_At_Random_One_Per_Site(mixt_tree->data);
+-        CV_Hide_Align_At_Random_Pos(mixt_tree->data, (phydbl)(1. / kfold));
++        CV_Hide_Align_At_Random_Pos(rand,mixt_tree->data, (phydbl)(1. / kfold));
+ 
+         c_seq_cpy->n_masked = mixt_tree->data->n_masked;
+         c_seq_cpy->masked_pos =
+@@ -4319,7 +4319,7 @@ void MIXT_Kfold_Pos_Cv(t_tree *mixt_tree)
+         // with masked positions)
+         Init_Partial_Lk_Tips_Double(mixt_tree);
+         // Global_Spr_Search(mixt_tree);
+-        Round_Optimize(mixt_tree,ROUND_MAX);
++        Round_Optimize(rand, mixt_tree,ROUND_MAX);
+         // Optimize_Br_Len_Serie(mixt_tree->n_otu, mixt_tree);
+ 
+         Set_Both_Sides(YES, mixt_tree);
+@@ -4384,7 +4384,7 @@ void MIXT_Kfold_Pos_Cv(t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ // Plain cross-validation routine whereby columns are hidden uniformly at random.
+-void MIXT_Kfold_Col_Cv(t_tree *mixt_tree)
++void MIXT_Kfold_Col_Cv(MTRand* rand, t_tree *mixt_tree)
+ {
+   phydbl    *state_probs, *site_loglk, *weights;
+   short int *truth;
+@@ -4410,7 +4410,7 @@ void MIXT_Kfold_Col_Cv(t_tree *mixt_tree)
+       c_seq_cpy = Copy_Cseq(mixt_tree->data, mixt_tree->io, mixt_tree);
+ 
+       // Hide characters in the original alignment uniformly at random
+-      CV_Hide_Align_At_Random_Col(mixt_tree->data, 1. / (phydbl)kfold);
++      CV_Hide_Align_At_Random_Col(rand,mixt_tree->data, 1. / (phydbl)kfold);
+ 
+       c_seq_cpy->n_masked   = mixt_tree->data->n_masked;
+       c_seq_cpy->masked_pos = (int *)mCalloc(c_seq_cpy->n_masked, sizeof(int));
+@@ -4421,7 +4421,7 @@ void MIXT_Kfold_Col_Cv(t_tree *mixt_tree)
+       // with masked positions)
+       Init_Partial_Lk_Tips_Double(mixt_tree);
+       // Round_Optimize(mixt_tree,ROUND_MAX);
+-      Global_Spr_Search(mixt_tree);
++      Global_Spr_Search(rand, mixt_tree);
+       Set_Both_Sides(YES, mixt_tree);
+       Set_Update_Eigen(YES, mixt_tree->mod);
+       Lk(NULL, mixt_tree);

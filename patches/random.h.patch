@@ -1,0 +1,41 @@
+diff --git a/src/random.h b/src/random.h
+new file mode 100644
+index 0000000..1fbdabc
+--- /dev/null
++++ b/src/random.h
+@@ -0,0 +1,34 @@
++/*
++
++PhyML:  a program that  computes maximum likelihood phylogenies from
++DNA or AA homologous sequences.
++
++Copyright (C) Martin Larralde. Dec 2025.
++Copyright (C) Stephane Guindon. Oct 2003 onward.
++
++All parts of the source except where indicated are distributed under
++the GNU public licence. See http://www.opensource.org for details.
++
++*/
++
++#include <stdint.h>
++#include <config.h>
++
++#ifndef RANDOM_H
++#define RANDOM_H
++
++#define MT_STATE_VECTOR_LENGTH 624
++#define MT_STATE_VECTOR_M      397 /* changes to STATE_VECTOR_LENGTH also require changes to this */
++
++#define MT_RAND_MAX 0xffffffff
++
++typedef struct __MTRand {
++  uint32_t mt[MT_STATE_VECTOR_LENGTH];
++  int32_t index;
++} MTRand;
++
++void MTRand_Seed(MTRand* rand, uint32_t seed);
++uint32_t MTRand_Long(MTRand* rand);
++double MTRand_Double(MTRand* rand);
++
++#endif
+\ No newline at end of file

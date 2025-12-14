@@ -1,0 +1,85 @@
+diff --git a/src/alrt.c b/src/alrt.c
+index 03f92ad..39b34f9 100644
+--- a/src/alrt.c
++++ b/src/alrt.c
+@@ -169,7 +169,7 @@ int Check_NNI_Five_Branches(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ 
+ /* Compute aLRT supports */
+-void aLRT(t_tree *tree)
++void aLRT(MTRand* rand, t_tree *tree)
+ {
+   int i;
+   char *method;
+@@ -214,7 +214,7 @@ void aLRT(t_tree *tree)
+           /* Compute likelihoods for each of the three configuration */
+           NNI_Neigh_BL(tree->a_edges[i],tree);
+           /* Compute the corresponding statistical support */
+-          Compute_Likelihood_Ratio_Test(tree->a_edges[i],tree);
++          Compute_Likelihood_Ratio_Test(rand,tree->a_edges[i],tree);
+         }
+     }
+       
+@@ -238,7 +238,7 @@ void aLRT(t_tree *tree)
+ * param isBoot : 1 if used from the procedure, 0 if not
+ * return an integer, informative to analyse the results and potential NNIs to do
+ */
+-int Compute_Likelihood_Ratio_Test(t_edge *tested_edge, t_tree *tree)
++int Compute_Likelihood_Ratio_Test(MTRand* rand, t_edge *tested_edge, t_tree *tree)
+ {
+   int result=0;
+ 
+@@ -275,7 +275,7 @@ int Compute_Likelihood_Ratio_Test(t_edge *tested_edge, t_tree *tree)
+               phydbl sh_support;
+               phydbl param_support;
+               
+-              sh_support    = Statistics_To_SH(tree);
++              sh_support    = Statistics_To_SH(rand,tree);
+               param_support = Statistics_To_Probabilities(tested_edge->alrt_statistic);
+               
+               if(sh_support < param_support) tested_edge->ratio_test = sh_support;
+@@ -288,7 +288,7 @@ int Compute_Likelihood_Ratio_Test(t_edge *tested_edge, t_tree *tree)
+             }
+           else if(tree->io->ratio_test == SH)
+             {
+-              tested_edge->ratio_test = Statistics_To_SH(tree);
++              tested_edge->ratio_test = Statistics_To_SH(rand,tree);
+             }
+           else if(tree->io->ratio_test == ABAYES)
+             {
+@@ -1087,7 +1087,7 @@ phydbl Statistics_To_Probabilities(phydbl in)
+ * Compute a RELL support, using the latest tested branch
+ * param tree: the tested tree
+ */
+-phydbl Statistics_to_RELL(t_tree *tree)
++phydbl Statistics_to_RELL(MTRand* rand, t_tree *tree)
+ {
+   int     i;
+   int     occurence = 10000;
+@@ -1116,7 +1116,7 @@ phydbl Statistics_to_RELL(t_tree *tree)
+       for (site = 0; site < tree->data->n_pattern; site++)
+         pi[site] = tree->data->wght[site] / (phydbl)tree->data->init_len;
+ 
+-      samples = Sample_n_i_With_Proba_pi(pi, tree->data->n_pattern,
++      samples = Sample_n_i_With_Proba_pi(rand, pi, tree->data->n_pattern,
+                                          tree->data->init_len);
+       for (site = 0; site < tree->data->init_len; ++site)
+       {
+@@ -1144,7 +1144,7 @@ phydbl Statistics_to_RELL(t_tree *tree)
+   Compute a SH-like support, using the latest tested branch
+   param tree: the tested tree
+ */
+-phydbl Statistics_To_SH(t_tree *tree)
++phydbl Statistics_To_SH(MTRand* rand, t_tree *tree)
+ {
+   int i;
+   int occurence=10000;
+@@ -1227,7 +1227,7 @@ phydbl Statistics_To_SH(t_tree *tree)
+           pi = (phydbl *)mCalloc(tree->data->n_pattern,sizeof(phydbl));
+           for(site=0;site<tree->data->n_pattern;site++) pi[site] = tree->data->wght[site] / (phydbl)tree->data->init_len;
+ 
+-	  samples = Sample_n_i_With_Proba_pi(pi,tree->data->n_pattern,tree->data->init_len);
++	  samples = Sample_n_i_With_Proba_pi(rand,pi,tree->data->n_pattern,tree->data->init_len);
+           /*! Shuffle the data */
+           For(site, tree->data->init_len)
+             {

@@ -1,0 +1,76 @@
+diff --git a/src/cv.c b/src/cv.c
+index dbbc64b..44d84c3 100644
+--- a/src/cv.c
++++ b/src/cv.c
+@@ -12,7 +12,7 @@ the GNU public licence. See http://www.opensource.org for details.
+ 
+ #include "cv.h"
+ // Routine for cross validation. 
+-phydbl *CV_Tip_Cv(t_tree *tree)
++phydbl *CV_Tip_Cv(MTRand* rand, t_tree *tree)
+ {
+   t_edge    *b;
+   int        obs_d_state, ambiguity_check;
+@@ -24,7 +24,7 @@ phydbl *CV_Tip_Cv(t_tree *tree)
+ 
+   if (tree->is_mixt_tree == YES)
+   {
+-    MIXT_Cv(tree);
++    MIXT_Cv(rand, tree);
+     return (NULL);
+   }
+ 
+@@ -148,7 +148,7 @@ phydbl *CV_Tip_Cv(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ // Mask positions uniformly at random (more than one position may
+ // be masked at any given site)
+-void CV_Hide_Align_At_Random_Pos(calign *data, phydbl mask_prob)
++void CV_Hide_Align_At_Random_Pos(MTRand* rand, calign *data, phydbl mask_prob)
+ {
+   phydbl u;
+ 
+@@ -158,7 +158,7 @@ void CV_Hide_Align_At_Random_Pos(calign *data, phydbl mask_prob)
+   {
+     for (int tax_id = 0; tax_id < data->n_otu; ++tax_id)
+     {
+-      u = Uni();
++      u = Uni(rand);
+ 
+       if (!(u > mask_prob))
+       {
+@@ -182,7 +182,7 @@ void CV_Hide_Align_At_Random_Pos(calign *data, phydbl mask_prob)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ // Mask exactly one position per site 
+-void CV_Hide_Align_At_Random_One_Per_Site(calign *data)
++void CV_Hide_Align_At_Random_One_Per_Site(MTRand* rand, calign *data)
+ {
+   int tax_id;
+ 
+@@ -190,7 +190,7 @@ void CV_Hide_Align_At_Random_One_Per_Site(calign *data)
+ 
+   for (int site = 0; site < data->n_pattern; ++site)
+   {
+-    tax_id = Rand_Int(0, data->n_otu - 1);
++    tax_id = Rand_Int(rand, 0, data->n_otu - 1);
+ 
+     data->c_seq[tax_id]->state[site]     = '?';
+     data->c_seq[tax_id]->d_state[site]   = -1;
+@@ -210,7 +210,7 @@ void CV_Hide_Align_At_Random_One_Per_Site(calign *data)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void CV_Hide_Align_At_Random_Col(calign *data, phydbl mask_prob)
++void CV_Hide_Align_At_Random_Col(MTRand* rand, calign *data, phydbl mask_prob)
+ {
+   phydbl u;
+ 
+@@ -218,7 +218,7 @@ void CV_Hide_Align_At_Random_Col(calign *data, phydbl mask_prob)
+   
+   for (int site = 0; site < data->n_pattern; ++site)
+   {
+-    u = Uni();
++    u = Uni(rand);
+ 
+     if (!(u > mask_prob))
+     {

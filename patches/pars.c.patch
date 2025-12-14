@@ -1,0 +1,31 @@
+diff --git a/src/pars.c b/src/pars.c
+index d06f388..ff9ee73 100644
+--- a/src/pars.c
++++ b/src/pars.c
+@@ -945,7 +945,7 @@ void Get_Step_Mat(t_tree *tree)
+ 
+ // Tree should be ready for likelihood analysis when calling
+ // this function.
+-void Stepwise_Add_Pars(t_tree *tree)
++void Stepwise_Add_Pars(MTRand* rand, t_tree *tree)
+ {
+   t_edge **residuals,**targets,*best_target;
+   int *nd_idx,i,j,n_targets,*tg_idx;
+@@ -953,7 +953,7 @@ void Stepwise_Add_Pars(t_tree *tree)
+   residuals   = (t_edge **)mCalloc(tree->n_otu-3,sizeof(t_edge *));
+   targets     = (t_edge **)mCalloc(2*tree->n_otu-3,sizeof(t_edge *));
+   best_target = NULL;
+-  nd_idx      = Permutate(tree->n_otu-3);
++  nd_idx      = Permutate(rand, tree->n_otu-3);
+ 
+   // Remove all tips except that corresponding to a_nodes[0], 
+   // a_nodes[1] and a_nodes[2].  
+@@ -980,7 +980,7 @@ void Stepwise_Add_Pars(t_tree *tree)
+ 
+       tree->best_pars = 1E+8;
+       best_target = NULL;
+-      tg_idx      = Permutate(n_targets);
++      tg_idx      = Permutate(rand, n_targets);
+ 
+       for(j=0;j<n_targets;j++)
+         {

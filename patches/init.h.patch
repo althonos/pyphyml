@@ -1,0 +1,26 @@
+diff --git a/src/init.h b/src/init.h
+index 600fcfa..4fbac44 100644
+--- a/src/init.h
++++ b/src/init.h
+@@ -59,9 +59,9 @@ void Init_Rmat(t_rmat *rmat);
+ void Init_MGF_Bl(t_tree *tree);
+ int Init_Qmat_FLU(phydbl *daa, phydbl *pi);
+ void Set_Defaults_Ras(t_ras *ras);
+-void GEO_Init_Coord(t_geo_coord *t, int n_dim);
+-void PHYREX_Init_Disk_Event(t_dsk *t, int n_dim, t_phyrex_mod *mod);
+-void PHYREX_Init_Lindisk_Node(t_ldsk *t, t_dsk *devt, int n_dim);
++void GEO_Init_Coord(MTRand* rand, t_geo_coord *t, int n_dim);
++void PHYREX_Init_Disk_Event(MTRand* rand, t_dsk *t, int n_dim, t_phyrex_mod *mod);
++void PHYREX_Init_Lindisk_Node(MTRand* rand, t_ldsk *t, t_dsk *devt, int n_dim);
+ void PHYREX_Init_Migrep_Mod(t_phyrex_mod *t, int n_dim, phydbl min_lat, phydbl min_lon, phydbl max_lat, phydbl max_lon);
+ void MCMC_Init_MCMC_Struct(char *filename, option *io, t_mcmc *mcmc);
+ void Init_Calibration(t_cal *cal);
+@@ -77,7 +77,7 @@ void RW_Init_Contrasts(int dim_idx, t_tree *tree);
+ void PHYREX_Set_Default_Migrep_Mod(int n_otu, t_phyrex_mod *t);
+ void Init_Contmod_Locations(t_tree *tree);
+ void Init_Contmod_Velocities(t_tree *tree);
+-void GEO_Init_Veloc(t_geo_veloc *t, int n_dim);
++void GEO_Init_Veloc(MTRand* rand, t_geo_veloc *t, int n_dim);
+ void Set_Defaults_Contmod(t_tree *tree);
+ 
+ #endif

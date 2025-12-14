@@ -1,0 +1,19 @@
+diff --git a/src/evolve.h b/src/evolve.h
+index 64856b2..bd716e4 100644
+--- a/src/evolve.h
++++ b/src/evolve.h
+@@ -18,10 +18,10 @@ the GNU public licence.  See http://www.opensource.org for details.
+ #include "utilities.h"
+ 
+ int EVOLVE_Main(int argc, char **argv);
+-void EVOLVE_Coalescent(t_tree *tree);
+-void EVOLVE_Seq(calign *data, t_mod *mod, FILE *fp, t_tree *tree);
+-int EVOLVE_Pick_State(int n,phydbl *prob);
+-void EVOLVE_Seq_Recur(t_node *a,t_node *d,t_edge *b,int a_state,int r_class,int site_num,calign *gen_data,t_mod *mod,t_tree *tree);
++void EVOLVE_Coalescent(MTRand* rand, t_tree *tree);
++void EVOLVE_Seq(MTRand* rand, calign *data, t_mod *mod, FILE *fp, t_tree *tree);
++int EVOLVE_Pick_State(MTRand* rand, int n,phydbl *prob);
++void EVOLVE_Seq_Recur(MTRand* rand, t_node *a,t_node *d,t_edge *b,int a_state,int r_class,int site_num,calign *gen_data,t_mod *mod,t_tree *tree);
+ phydbl *EVOLVE_Site_Lk(int site_idx, int rate_class, calign *data, t_tree *tree);
+ 
+ #endif

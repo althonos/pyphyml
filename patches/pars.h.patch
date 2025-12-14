@@ -1,0 +1,21 @@
+diff --git a/src/pars.h b/src/pars.h
+index ce3c86e..34aaa8c 100644
+--- a/src/pars.h
++++ b/src/pars.h
+@@ -18,6 +18,7 @@ the GNU public licence.  See http://www.opensource.org for details.
+ #include "utilities.h"
+ #include "lk.h"
+ #include "optimiz.h"
++#include "random.h"
+ #include "models.h"
+ #include "free.h"
+ 
+@@ -35,7 +36,7 @@ void Init_Partial_Pars_Tips(t_tree *tree);
+ void Get_Step_Mat(t_tree *tree);
+ int Pars_Core(t_edge *b, t_tree *tree);
+ int One_Pars_Step(t_edge *b,t_tree *tree);
+-void Stepwise_Add_Pars(t_tree *tree);
++void Stepwise_Add_Pars(MTRand* rand, t_tree *tree);
+ void Backup_Partial_Pars(t_node *d, t_edge *b, t_tree *tree);
+ void Restore_Partial_Pars(t_node *d, t_edge *b, t_tree *tree);
+ 

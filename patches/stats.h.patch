@@ -1,0 +1,131 @@
+diff --git a/src/stats.h b/src/stats.h
+index 49beac0..ec58395 100644
+--- a/src/stats.h
++++ b/src/stats.h
+@@ -21,17 +21,18 @@ the GNU public licence. See http://www.opensource.org for details.
+ #include "optimiz.h"
+ #include "models.h"
+ #include "eigen.h"
++#include "random.h"
+ 
+ 
+-phydbl *Covariance_Matrix(t_tree *tree);
++phydbl *Covariance_Matrix(MTRand* rand, t_tree *tree);
+ phydbl *Hessian(t_tree *tree);
+ void   Recurr_Hessian(t_node *a, t_node *b, int plus_minus, phydbl *inc, phydbl *res, int *is_ok, t_tree *tree);
+ phydbl stdnormal_inv(phydbl p);
+-phydbl Uni(void);
+-int    Rand_Int(int min, int max);
+-phydbl Ahrensdietergamma(phydbl alpha);
+-phydbl Rgamma(phydbl shape, phydbl scale);
+-phydbl Rexp(phydbl lambda);
++phydbl Uni(MTRand* rand);
++int    Rand_Int(MTRand* rand, int min, int max);
++phydbl Ahrensdietergamma(MTRand* rand, phydbl alpha);
++phydbl Rgamma(MTRand* rand, phydbl shape, phydbl scale);
++phydbl Rexp(MTRand* rand, phydbl lambda);
+ phydbl Bico(int n, int k);
+ phydbl Factln(int n);
+ phydbl Gammln(phydbl xx);
+@@ -56,10 +57,10 @@ phydbl Dexp(phydbl x, phydbl param);
+ phydbl Log_Dexp(phydbl x, phydbl param);
+ phydbl Dpois(phydbl x, phydbl param, int logit);
+ phydbl Rand_Normal_Deviate(phydbl mean, phydbl sd);
+-phydbl Rnorm(phydbl mean, phydbl sd);
+-phydbl *Rnorm_Multid(phydbl *mu, phydbl *cov, int dim);
+-phydbl Rnorm_Trunc(phydbl mean, phydbl sd, phydbl min, phydbl max, int *err);
+-phydbl *Rnorm_Multid_Trunc(phydbl *mean, phydbl *cov, phydbl *min, phydbl *max, int dim);
++phydbl Rnorm(MTRand* rand, phydbl mean, phydbl sd);
++phydbl *Rnorm_Multid(MTRand* rand, phydbl *mu, phydbl *cov, int dim);
++phydbl Rnorm_Trunc(MTRand* rand, phydbl mean, phydbl sd, phydbl min, phydbl max, int *err);
++phydbl *Rnorm_Multid_Trunc(MTRand* rand, phydbl *mean, phydbl *cov, phydbl *min, phydbl *max, int dim);
+ phydbl *Hessian_Log(t_tree *tree);
+ void Recurr_Hessian_Log(t_node *a, t_node *d, int plus_minus, phydbl *inc, phydbl *res, int *is_ok, t_tree *tree);
+ phydbl Log_Det(int *is_ok, t_tree *tree);
+@@ -79,7 +80,7 @@ void Normal_Conditional(phydbl *mu, phydbl *cov, phydbl *a, int n, short int *is
+ void Normal_Conditional_Unsorted(phydbl *mu, phydbl *cov, phydbl *a, int n, short int *is_1, int n1, phydbl *cond_mu, phydbl *cond_cov);
+ phydbl Matrix_Det(phydbl *A, int size, int _log);
+ void Get_Reg_Coeff(phydbl *mu, phydbl *cov, phydbl *a, int n, short int *is_1, int n1, phydbl *reg_coeff);
+-phydbl Rnorm_Trunc_Inverse(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error);
++phydbl Rnorm_Trunc_Inverse(MTRand* rand, phydbl mean, phydbl sd, phydbl min, phydbl max, int *error);
+ phydbl Norm_Trunc_Sd(phydbl mu, phydbl sd, phydbl a, phydbl b);
+ phydbl Norm_Trunc_Mean(phydbl mu, phydbl sd, phydbl a, phydbl b);
+ int Norm_Trunc_Mean_Sd(phydbl mu, phydbl sd, phydbl a, phydbl b, phydbl *trunc_mu, phydbl *trunc_sd);
+@@ -88,7 +89,7 @@ phydbl  Pnorm_Marsaglia(phydbl x);
+ int Iter_Matinv(phydbl *x, int n, int m, int verbose);
+ phydbl Dorder_Unif(phydbl x, int r, int n, phydbl min, phydbl max);
+ phydbl Covariance(phydbl *x, phydbl *y, int n);
+-phydbl *Rnorm_Multid_Trunc_Constraint(phydbl *mu, phydbl *cov, phydbl *min, phydbl *max, phydbl *lambda, phydbl k, phydbl *res, int len);
++phydbl *Rnorm_Multid_Trunc_Constraint(MTRand* rand, phydbl *mu, phydbl *cov, phydbl *min, phydbl *max, phydbl *lambda, phydbl k, phydbl *res, int len);
+ phydbl *Gradient(t_tree *tree);
+ phydbl *Hessian_Seo(t_tree *tree);
+ void Integrated_Brownian_Bridge_Moments(phydbl x_beg, phydbl x_end, 
+@@ -97,47 +98,47 @@ void Integrated_Brownian_Bridge_Moments(phydbl x_beg, phydbl x_end,
+ void Integrated_Geometric_Brownian_Bridge_Moments(phydbl T, phydbl A, phydbl B, phydbl u, phydbl *mean, phydbl *var);
+ void Integrated_Geometric_Brownian_Bridge_Mean(phydbl T, phydbl A, phydbl B, phydbl u, phydbl *mean);
+ void Integrated_Geometric_Brownian_Bridge_Var(phydbl T, phydbl A, phydbl B, phydbl u, phydbl *mean);
+-int Sample_i_With_Proba_pi(phydbl *pi, int len);
+-int* Sample_n_i_With_Proba_pi(phydbl *pi, int len,int n_elts);
++int Sample_i_With_Proba_pi(MTRand* rand, phydbl *pi, int len);
++int* Sample_n_i_With_Proba_pi(MTRand* rand, phydbl *pi, int len,int n_elts);
+ phydbl Quantile(phydbl *x, int len, phydbl p);
+ phydbl Prob(phydbl *x, int len, phydbl z);
+ phydbl Inverse_Truncated_Normal(phydbl y, phydbl mu, phydbl sigma, phydbl lim_inf, phydbl lim_sup);
+ phydbl Progressive_EXP(phydbl x);
+-int *Permutate(int len);
+-phydbl Mantel(phydbl *x, phydbl *y, int nrow, int ncol);
++int *Permutate(MTRand* rand, int len);
++phydbl Mantel(MTRand* rand, phydbl *x, phydbl *y, int nrow, int ncol);
+ phydbl Weighted_Mean(phydbl *x, phydbl *w, int l);
+ int Sum_Bits(int value, int range);
+ int Modulo (int a, int b);
+-void Runif_Disk(phydbl *sampled_x, phydbl *sampled_y, phydbl centrx, phydbl centry, phydbl radius);
+-void Random_String(char *s, int len);
+-int *Random_Permut(int n);
++void Runif_Disk(MTRand* rand, phydbl *sampled_x, phydbl *sampled_y, phydbl centrx, phydbl centry, phydbl radius);
++void Random_String(MTRand* rand, char *s, int len);
++int *Random_Permut(MTRand* rand, int n);
+ phydbl Dexp_Trunc(phydbl x, phydbl lambda, phydbl left, phydbl rght);
+-phydbl Rexp_Trunc(phydbl lambda, phydbl left, phydbl rght);
+-t_poly *Rpoly(int n);
+-phydbl Area_Of_Poly_Monte_Carlo(t_poly *poly, t_geo_coord *lim);
++phydbl Rexp_Trunc(MTRand* rand, phydbl lambda, phydbl left, phydbl rght);
++t_poly *Rpoly(MTRand* rand, int n);
++phydbl Area_Of_Poly_Monte_Carlo(MTRand* rand, t_poly *poly, t_geo_coord *lim);
+ int Is_In_Polygon(t_geo_coord *point, t_poly *poly);
+ phydbl Variance(phydbl *x, int l);
+ phydbl Bessi0(phydbl x);
+ phydbl Bessk0(phydbl x);
+ phydbl Euclidean_Distance(t_geo_coord *x, t_geo_coord *y);
+ int *Ranks(phydbl *x, int len);
+-phydbl Rpois(phydbl mmu);
+-phydbl Rgeom(phydbl p);
++phydbl Rpois(MTRand* rand, phydbl mmu);
++phydbl Rgeom(MTRand* rand, phydbl p);
+ phydbl Dgeom(phydbl k, phydbl p, int logit);
+ phydbl Pgeom(phydbl k, phydbl p);
+-phydbl *Brownian_Bridge_Generate(phydbl start, phydbl end, phydbl var, phydbl beg_time, phydbl end_time, int n_steps, phydbl *time);
+-phydbl *Brownian_Generate(phydbl var, int n_steps, phydbl beg_time, phydbl *time);
++phydbl *Brownian_Bridge_Generate(MTRand* rand, phydbl start, phydbl end, phydbl var, phydbl beg_time, phydbl end_time, int n_steps, phydbl *time);
++phydbl *Brownian_Generate(MTRand* rand, phydbl var, int n_steps, phydbl beg_time, phydbl *time);
+ phydbl Brownian_Bridge_Logdensity(phydbl start, phydbl end, phydbl *state, phydbl var, phydbl end_time, int n_steps, phydbl *time);
+ phydbl Reflected(phydbl x, phydbl down, phydbl up);
+-phydbl *Random_Walk_Generate(phydbl var, int n_steps);
+-phydbl *Random_Walk_Bridged_Generate(phydbl start, phydbl end, phydbl var, int n_steps);
++phydbl *Random_Walk_Generate(MTRand* rand, phydbl var, int n_steps);
++phydbl *Random_Walk_Bridged_Generate(MTRand* rand, phydbl start, phydbl end, phydbl var, int n_steps);
+ phydbl Dnbinom(phydbl x, phydbl n, phydbl p, int logit);
+-phydbl Rnbinom(phydbl n, phydbl p);
++phydbl Rnbinom(MTRand* rand, phydbl n, phydbl p);
+ phydbl Erf(phydbl x);
+-phydbl Rnorm_Trunc_Algo1(phydbl alpha, phydbl beta, int *err);
+-phydbl Rnorm_Trunc_Algo2(phydbl alpha, phydbl beta, int *err);
+-phydbl Rnorm_Trunc_Algo3(phydbl alpha, phydbl beta, int *err);
+-phydbl Rnorm_Trunc_Algo4(phydbl alpha, phydbl beta, int *err);
++phydbl Rnorm_Trunc_Algo1(MTRand* rand, phydbl alpha, phydbl beta, int *err);
++phydbl Rnorm_Trunc_Algo2(MTRand* rand, phydbl alpha, phydbl beta, int *err);
++phydbl Rnorm_Trunc_Algo3(MTRand* rand, phydbl alpha, phydbl beta, int *err);
++phydbl Rnorm_Trunc_Algo4(MTRand* rand, phydbl alpha, phydbl beta, int *err);
+ phydbl Manhattan_Distance(t_geo_coord *x, t_geo_coord *y);
+ phydbl Haversine_Distance(t_geo_coord *x, t_geo_coord *y);
+ int *Reverse(int *v, int len);

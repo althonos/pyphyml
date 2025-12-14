@@ -1,0 +1,45 @@
+diff --git a/src/main.c b/src/main.c
+index 0927af1..b3d6436 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -81,9 +81,11 @@ int main(int argc, char **argv)
+ 
+   r_seed = (io->r_seed < 0) ? (time(NULL)) : (io->r_seed);
+ #ifdef MPI
+-  srand(r_seed + Global_myRank);
++  MTRand_Seed(&io->rand, r_seed + Global_myRank);
++  // srand(r_seed + Global_myRank);
+ #else
+-  srand(r_seed);
++  // srand(r_seed);
++  MTRand_Seed(&io->rand, r_seed);
+ #endif
+   io->r_seed = r_seed;
+ 
+@@ -263,7 +265,7 @@ int main(int argc, char **argv)
+ 
+           if (tree->mod->s_opt->opt_topo)
+           {
+-            Global_Spr_Search(tree);
++            Global_Spr_Search(&io->rand,tree);
+             if (tree->n_root) Add_Root(tree->a_edges[0], tree);
+           }
+           else
+@@ -273,7 +275,7 @@ int main(int argc, char **argv)
+ #endif
+             if (tree->mod->s_opt->opt_subst_param ||
+                 tree->mod->s_opt->opt_bl_one_by_one)
+-              Round_Optimize(tree, ROUND_MAX);
++              Round_Optimize(&io->rand, tree, ROUND_MAX);
+           }
+ 
+         
+@@ -320,7 +322,7 @@ int main(int argc, char **argv)
+                                                                      : (NO),
+                 io->precision);
+ 
+-            if (tree->io->print_site_lnl) Print_Site_Lk(tree, io->fp_out_lk);
++            if (tree->io->print_site_lnl) Print_Site_Lk(&tree->io->rand, tree, io->fp_out_lk);
+           }
+ 
+           /* Start from BioNJ tree */

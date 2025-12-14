@@ -23,6 +23,7 @@ cimport phyml.spr
 cimport phyml.optimiz
 cimport phyml.pars
 cimport phyml.ancestral
+cimport phyml.random
 from phyml.utilities cimport (
     phydbl,
     align as t_align,
@@ -332,7 +333,7 @@ cdef class TreeBuilder:
 
         Keyword Arguments:
             seed (`int`): The seed to initialize the random number generator
-                with. If a negative number is given, the seed will be
+                with. If a non-positive number is given, the seed will be
                 initialized using the system clock.
             model (`ModelPrototype` or `None`): The substitution model
                 parameters to use. Pass `None` to use the default *HKY85*
@@ -377,10 +378,10 @@ cdef class TreeBuilder:
 
     cdef void _seed_rng(self, t_option* io) noexcept nogil:
         cdef int r_seed = self.seed
-        if r_seed < 0:
+        if r_seed <= 0:
             r_seed = time(NULL)
         io.r_seed = r_seed
-        srand(r_seed)
+        phyml.random.MTRand_Seed(&io.rand, r_seed)
 
     cdef void _initialize_options(self, t_option* io) except *:
         # initialize RNG (--r_seed flag)
@@ -615,12 +616,12 @@ cdef class TreeBuilder:
                     PhyML_Printf("\n. Init log-likelihood: %f", tree.c_lnL)
 
                 if tree.mod.s_opt.opt_topo:
-                    phyml.spr.Global_Spr_Search(tree)
+                    phyml.spr.Global_Spr_Search(&io.rand, tree)
                     if tree.n_root:
                         phyml.utilities.Add_Root(tree.a_edges[0], tree)
                 else:
                     if tree.mod.s_opt.opt_subst_param or tree.mod.s_opt.opt_bl_one_by_one:
-                        phyml.optimiz.Round_Optimize(tree, phyml.utilities.ROUND_MAX)
+                        phyml.optimiz.Round_Optimize(&io.rand, tree, phyml.utilities.ROUND_MAX)
 
                 phyml.utilities.Set_Both_Sides(True, tree)
                 phyml.lk.Lk(NULL, tree)
@@ -669,8 +670,8 @@ cdef class TreeBuilder:
                     #     io.precision
                     # )
 
-                    if tree.io.print_site_lnl:
-                        phyml.io.Print_Site_Lk(tree, io.fp_out_lk)
+                    # if tree.io.print_site_lnl:
+                    #     phyml.io.Print_Site_Lk(tree, io.fp_out_lk)
 
                 # Start from BioNJ tree
                 if num_rand_tree == io.mod.s_opt.n_rand_starts - 1 and tree.mod.s_opt.random_input_tree:

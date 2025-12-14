@@ -1,0 +1,318 @@
+diff --git a/src/spr.c b/src/spr.c
+index ef2b845..c9c4507 100644
+--- a/src/spr.c
++++ b/src/spr.c
+@@ -117,14 +117,14 @@ void Sort_Spr_List_Pars(t_tree *tree)
+ /*********************************************************/
+ /*********************************************************/
+ 
+-void Randomize_Spr_List(t_tree *tree)
++void Randomize_Spr_List(MTRand* rand, t_tree *tree)
+ {
+   int i,j;
+   t_spr *buff;
+ 
+   for(i=0;i<tree->n_moves;i++)
+     {
+-      j = Rand_Int(0,tree->n_moves-1);
++      j = Rand_Int(rand, 0,tree->n_moves-1);
+       buff                       = tree->spr_list_one_edge[i];
+       tree->spr_list_one_edge[i] = tree->spr_list_one_edge[j];
+       tree->spr_list_one_edge[j] = buff;
+@@ -133,7 +133,7 @@ void Randomize_Spr_List(t_tree *tree)
+ 
+ /*********************************************************/
+ 
+-int Spr(phydbl init_lnL, phydbl prop_spr, t_tree *tree)
++int Spr(MTRand* rand, phydbl init_lnL, phydbl prop_spr, t_tree *tree)
+ {
+   int i,br;
+   int *br_idx;
+@@ -146,7 +146,7 @@ int Spr(phydbl init_lnL, phydbl prop_spr, t_tree *tree)
+   
+   Reset_Spr_List(tree->spr_list_all_edge,tree->size_spr_list_all_edge);
+ 
+-  br_idx = Permutate(2*tree->n_otu-3);
++  br_idx = Permutate(rand,2*tree->n_otu-3);
+ 
+   Set_Both_Sides(YES,tree);
+   Lk(NULL,tree);
+@@ -162,8 +162,8 @@ int Spr(phydbl init_lnL, phydbl prop_spr, t_tree *tree)
+       
+       if(b->l->v > tree->mod->s_opt->l_min_spr)
+         {
+-          Spr_Subtree(b,b->left,tree);
+-          Spr_Subtree(b,b->rght,tree);
++          Spr_Subtree(rand,b,b->left,tree);
++          Spr_Subtree(rand,b,b->rght,tree);
+         }
+     }
+   
+@@ -190,7 +190,7 @@ int Spr(phydbl init_lnL, phydbl prop_spr, t_tree *tree)
+ 
+ /*********************************************************/
+ 
+-void Spr_Pre_Order(t_node *a, t_node *d, t_edge *b, t_tree *tree)
++void Spr_Pre_Order(MTRand* rand, t_node *a, t_node *d, t_edge *b, t_tree *tree)
+ {
+   if(d->tax) return;
+   else
+@@ -208,13 +208,13 @@ void Spr_Pre_Order(t_node *a, t_node *d, t_edge *b, t_tree *tree)
+       /*       } */
+       /*   } */
+ 
+-      Spr_Subtree(b,a,tree);
++      Spr_Subtree(rand,b,a,tree);
+       
+       for(i=0;i<3;++i)
+         {
+           if(d->v[i] != a)
+             {
+-              Spr_Pre_Order(d,d->v[i],d->b[i],tree);
++              Spr_Pre_Order(rand,d,d->v[i],d->b[i],tree);
+             }
+         }
+ 
+@@ -223,7 +223,7 @@ void Spr_Pre_Order(t_node *a, t_node *d, t_edge *b, t_tree *tree)
+ 
+ /*********************************************************/
+ 
+-void Spr_Subtree(t_edge *b, t_node *link, t_tree *tree)
++void Spr_Subtree(MTRand* rand, t_edge *b, t_node *link, t_tree *tree)
+ {
+   int i;
+   int n_moves_pars, n_moves, min_pars, best_move_idx;
+@@ -340,7 +340,7 @@ void Spr_Subtree(t_edge *b, t_node *link, t_tree *tree)
+                   if(Are_Equal(tree->annealing_temp,0.0,1.E-3) == NO)
+                     {
+                       accept_prob = exp((tree->spr_list_one_edge[best_move_idx]->lnL - tree->best_lnL)/tree->annealing_temp);
+-                      u = Uni();
++                      u = Uni(rand);
+                       if(!(u > accept_prob)) apply_move = YES;
+                     }
+                   else
+@@ -761,7 +761,7 @@ t_spr *Test_One_Spr_Target(t_edge *b_target, t_edge *b_arrow, t_node *n_link, t_
+ 
+ /*********************************************************/
+ 
+-void Global_Spr_Search(t_tree *tree)
++void Global_Spr_Search(MTRand* rand, t_tree *tree)
+ {
+   unsigned int i,iter;
+   phydbl best_lnL;
+@@ -784,7 +784,7 @@ void Global_Spr_Search(t_tree *tree)
+                  
+   tree->mod->s_opt->min_diff_lk_move  = 1.E-1;
+   tree->mod->s_opt->min_diff_lk_local = 1.E-1;
+-  Round_Optimize(tree,1000);
++  Round_Optimize(rand,tree,1000);
+   best_lnL = tree->c_lnL;
+   Copy_Tree(tree,best_tree);
+   
+@@ -810,7 +810,7 @@ void Global_Spr_Search(t_tree *tree)
+     {
+       if(!(iter%freq))
+         {
+-          for(int i=0;i<2*tree->n_otu-3;++i) MIXT_Multiply_Scalar_Dbl(tree->a_edges[i]->l,Rgamma((phydbl)(tune_l_mult*iter+1),(phydbl)(1./(tune_l_mult*iter+1))));
++          for(int i=0;i<2*tree->n_otu-3;++i) MIXT_Multiply_Scalar_Dbl(tree->a_edges[i]->l,Rgamma(rand,(phydbl)(tune_l_mult*iter+1),(phydbl)(1./(tune_l_mult*iter+1))));
+           for(int i=0;i<2*tree->n_otu-3;++i) Set_Scalar_Dbl_Min_Thresh(tree->mod->l_min,tree->a_edges[i]->l);
+           for(int i=0;i<2*tree->n_otu-3;++i) Set_Scalar_Dbl_Max_Thresh(tree->mod->l_max,tree->a_edges[i]->l);
+           freq--;
+@@ -819,10 +819,10 @@ void Global_Spr_Search(t_tree *tree)
+       
+       if(iter> 10) tree->mod->s_opt->l_min_spr = 1.E-3;
+ 
+-      Spr(tree->c_lnL,1.0,tree);
++      Spr(rand,tree->c_lnL,1.0,tree);
+       Optimize_Br_Len_Serie(2,tree);
+       
+-      if(!(iter%round_freq) && iter > 0) Round_Optimize(tree,1000);
++      if(!(iter%round_freq) && iter > 0) Round_Optimize(rand,tree,1000);
+ 
+       if(tree->verbose > VL0 && tree->io->quiet == NO)
+         {
+@@ -892,17 +892,17 @@ void Global_Spr_Search(t_tree *tree)
+     {
+       if(!(iter%freq))
+         {
+-          for(int i=0;i<2*tree->n_otu-3;++i) MIXT_Multiply_Scalar_Dbl(tree->a_edges[i]->l,Rgamma((phydbl)(tune_l_mult*iter+1),(phydbl)(1./(tune_l_mult*iter+1))));
++          for(int i=0;i<2*tree->n_otu-3;++i) MIXT_Multiply_Scalar_Dbl(tree->a_edges[i]->l,Rgamma(rand,(phydbl)(tune_l_mult*iter+1),(phydbl)(1./(tune_l_mult*iter+1))));
+           for(int i=0;i<2*tree->n_otu-3;++i) Set_Scalar_Dbl_Min_Thresh(tree->mod->l_min,tree->a_edges[i]->l);
+           for(int i=0;i<2*tree->n_otu-3;++i) Set_Scalar_Dbl_Max_Thresh(tree->mod->l_max,tree->a_edges[i]->l);
+           freq--;
+           if(freq < 1) freq=1;
+         }
+       
+-      Spr(tree->c_lnL,1.0,tree);
++      Spr(rand,tree->c_lnL,1.0,tree);
+       Optimize_Br_Len_Serie(2,tree);
+       
+-      if(!(iter%round_freq) && iter > 0) Round_Optimize(tree,1000);
++      if(!(iter%round_freq) && iter > 0) Round_Optimize(rand,tree,1000);
+       
+       if(tree->verbose > VL0 && tree->io->quiet == NO)
+         {
+@@ -965,10 +965,10 @@ void Global_Spr_Search(t_tree *tree)
+   
+   do
+     {
+-      Spr(tree->c_lnL,1.0,tree);
++      Spr(rand,tree->c_lnL,1.0,tree);
+       Optimize_Br_Len_Serie(2,tree);
+             
+-      if(!(iter%round_freq)) Round_Optimize(tree,1000);
++      if(!(iter%round_freq)) Round_Optimize(rand,tree,1000);
+ 
+       if(tree->verbose > VL0 && tree->io->quiet == NO)
+         {
+@@ -1015,7 +1015,7 @@ void Global_Spr_Search(t_tree *tree)
+   do
+     {
+       tree->mod->s_opt->fast_nni = NO;
+-      Round_Optimize(tree,10);
++      Round_Optimize(rand,tree,10);
+       if(!Check_NNI_Five_Branches(tree)) break;
+     }
+   while(1);
+@@ -1029,7 +1029,7 @@ void Global_Spr_Search(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Speed_Spr(t_tree *tree, phydbl prop_spr, int max_cycles, phydbl delta_lnL)
++void Speed_Spr(MTRand* rand, t_tree *tree, phydbl prop_spr, int max_cycles, phydbl delta_lnL)
+ {
+   int step,old_pars;
+   phydbl old_lnL;
+@@ -1063,7 +1063,7 @@ void Speed_Spr(t_tree *tree, phydbl prop_spr, int max_cycles, phydbl delta_lnL)
+       Set_Both_Sides(YES,tree);
+       Pars(NULL,tree);
+       if(tree->mod->s_opt->spr_pars == NO) Lk(NULL,tree);
+-      Spr(UNLIKELY,prop_spr,tree);
++      Spr(rand,UNLIKELY,prop_spr,tree);
+ 
+       // Set maximum depth for future spr rounds to deepest spr found so far
+       tree->mod->s_opt->max_depth_path = tree->mod->s_opt->max_spr_depth;
+@@ -1091,7 +1091,7 @@ void Speed_Spr(t_tree *tree, phydbl prop_spr, int max_cycles, phydbl delta_lnL)
+           PhyML_Fprintf(tree->io->fp_out_trace,"[%f]%s\n",tree->c_lnL,s); fflush(tree->io->fp_out_trace);
+           if((tree->io->print_site_lnl) && (!tree->mod->s_opt->spr_pars))
+             {
+-              Print_Site_Lk(tree,tree->io->fp_out_lk);
++              Print_Site_Lk(rand,tree,tree->io->fp_out_lk);
+               fflush(tree->io->fp_out_lk);
+             }
+           Free(s);
+@@ -1685,7 +1685,7 @@ unsigned int Include_One_Spr_To_List_Of_Spr(t_spr **list, int list_size, t_spr *
+ 
+ /*********************************************************/
+ 
+-void Random_Spr(int n_moves, t_tree *tree)
++void Random_Spr(MTRand* rand, int n_moves, t_tree *tree)
+ {
+   int i;
+   int br_pulled, br_target;
+@@ -1699,12 +1699,12 @@ void Random_Spr(int n_moves, t_tree *tree)
+   for(i=0;i<n_moves;i++)
+     {
+       /* br_pulled = (int)((phydbl)rand()/RAND_MAX * (2*tree->n_otu-3-1)); */
+-      br_pulled = Rand_Int(0,2*tree->n_otu-3-1);
++      br_pulled = Rand_Int(rand,0,2*tree->n_otu-3-1);
+       
+       do
+         {
+           /* br_target = (int)((phydbl)rand()/RAND_MAX * (2*tree->n_otu-3-1)); */
+-          br_target = Rand_Int(0,2*tree->n_otu-3-1);
++          br_target = Rand_Int(rand,0,2*tree->n_otu-3-1);
+         }
+       while(br_target == br_pulled);
+ 
+@@ -1784,7 +1784,7 @@ int Check_Spr_Move_Validity(t_spr *this_spr_move, t_tree *tree)
+ 
+ /*********************************************************/
+ 
+-void Spr_Pars(int threshold, int n_round_max, t_tree *tree)
++void Spr_Pars(MTRand* rand, int threshold, int n_round_max, t_tree *tree)
+ {  
+   int curr_pars,round;
+ 
+@@ -1800,7 +1800,7 @@ void Spr_Pars(int threshold, int n_round_max, t_tree *tree)
+   do
+     {
+       curr_pars = tree->c_pars;
+-      Speed_Spr(tree,1.0,1,0.0);      
++      Speed_Spr(rand,tree,1.0,1,0.0);      
+     }
+   while(tree->mod->s_opt->n_improvements && fabs((phydbl)(tree->c_pars - curr_pars)) > threshold && round++ < n_round_max);
+ }
+@@ -1808,7 +1808,7 @@ void Spr_Pars(int threshold, int n_round_max, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Spr_Shuffle(t_tree *mixt_tree)
++void Spr_Shuffle(MTRand* rand, t_tree *mixt_tree)
+ {
+   phydbl lk_old;
+   int *orig_catg,n,n_iter;
+@@ -1884,7 +1884,7 @@ void Spr_Shuffle(t_tree *mixt_tree)
+       mixt_tree->best_lnL  = mixt_tree->c_lnL;
+ 
+       lk_old = mixt_tree->c_lnL;
+-      Spr(UNLIKELY,1.0,mixt_tree);
++      Spr(rand,UNLIKELY,1.0,mixt_tree);
+ 
+       mixt_tree->annealing_temp -= 2.;
+ 
+@@ -1950,7 +1950,7 @@ void Spr_Shuffle(t_tree *mixt_tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Spr_Random_Explore(t_tree *tree, phydbl anneal_temp, phydbl prop_spr, int do_rnd, int max_cycles)
++void Spr_Random_Explore(MTRand* rand, t_tree *tree, phydbl anneal_temp, phydbl prop_spr, int do_rnd, int max_cycles)
+ {
+   int step,i,n_targets,n_rand;
+   t_tree *best_tree;
+@@ -1993,10 +1993,10 @@ void Spr_Random_Explore(t_tree *tree, phydbl anneal_temp, phydbl prop_spr, int d
+           n_rand = 0;
+           do
+             {
+-              rnd_node = tree->a_nodes[Rand_Int(tree->n_otu,2*tree->n_otu-3)];
++              rnd_node = tree->a_nodes[Rand_Int(rand,tree->n_otu,2*tree->n_otu-3)];
+               assert(rnd_node != tree->n_root && rnd_node->tax == NO);
+               
+-              rnd_edge = rnd_node->b[Rand_Int(0,2)];
++              rnd_edge = rnd_node->b[Rand_Int(rand,0,2)];
+               
+               Prune_Subtree(rnd_node,
+                             rnd_node == rnd_edge->left ? rnd_edge->rght : rnd_edge->left,
+@@ -2013,7 +2013,7 @@ void Spr_Random_Explore(t_tree *tree, phydbl anneal_temp, phydbl prop_spr, int d
+                 if(b_target->rght->v[i] != b_target->left)
+                   Get_List_Of_Adjacent_Targets(b_target->rght,b_target->rght->v[i],NULL,&target_list,&n_targets,0,5);
+               
+-              if(n_targets > 0) b_target = target_list[Rand_Int(0,n_targets-1)];
++              if(n_targets > 0) b_target = target_list[Rand_Int(rand,0,n_targets-1)];
+               
+               assert(b_target != NULL);
+               
+@@ -2035,12 +2035,12 @@ void Spr_Random_Explore(t_tree *tree, phydbl anneal_temp, phydbl prop_spr, int d
+       
+       tree->best_lnL       = tree->c_lnL;
+       tree->best_pars      = tree->c_pars;
+-      Spr(UNLIKELY,prop_spr,tree);
++      Spr(rand,UNLIKELY,prop_spr,tree);
+       
+       tree->annealing_temp -= 0.5;
+       prop_spr+=0.2;
+ 
+-      Optimiz_All_Free_Param(tree,(tree->io->quiet == YES)?(0):(tree->verbose > VL0));
++      Optimiz_All_Free_Param(rand,tree,(tree->io->quiet == YES)?(0):(tree->verbose > VL0));
+       Optimize_Br_Len_Serie(2,tree);
+ 
+       if(tree->io->print_trace)
+@@ -2049,7 +2049,7 @@ void Spr_Random_Explore(t_tree *tree, phydbl anneal_temp, phydbl prop_spr, int d
+           PhyML_Fprintf(tree->io->fp_out_trace,"[%f]%s\n",tree->c_lnL,s); fflush(tree->io->fp_out_trace);
+           if((tree->io->print_site_lnl) && (!tree->mod->s_opt->spr_pars))
+             {
+-              Print_Site_Lk(tree,tree->io->fp_out_lk);
++              Print_Site_Lk(rand,tree,tree->io->fp_out_lk);
+               fflush(tree->io->fp_out_lk);
+             }
+           Free(s);

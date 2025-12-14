@@ -1,0 +1,774 @@
+diff --git a/src/stats.c b/src/stats.c
+index cced086..cb3a4e8 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -73,19 +73,16 @@ phydbl tt800(void)
+ 
+ /*********************************************************************/
+ 
+-phydbl Uni(void)
++phydbl Uni(MTRand* rand)
+ {
+-  phydbl r,mx;
+-  mx = (phydbl)RAND_MAX;
+-  r  = (phydbl)rand();
+-  r /= mx;
+-  /* r = tt800(); */
++  phydbl r;
++  r = MTRand_Double(rand);
+   return r;
+ }
+ 
+ /*********************************************************************/
+ // Return a uniform draw u s.t., min <= u <= max
+-int Rand_Int(int min, int max)
++int Rand_Int(MTRand* rand,int min, int max)
+ {
+ /*   phydbl u;   */
+ /*   u = (phydbl)rand(); */
+@@ -94,10 +91,19 @@ int Rand_Int(int min, int max)
+ /*   u += min; */
+ /*   return (int)FLOOR(u); */
+ 
+-  int u;
++  /* int u; */
+   /* if(max < min) Generic_Exit(__FILE__,__LINE__,__FUNCTION__); */
+-  u = rand();
+-  return (u%(max+1-min)+min);
++  /* u = (int)MTRand_Long(rand); */
++  /* return (u%(max+1-min)+min); */
++
++  int n = max + 1 - min;
++  assert(( n > 0 ));
++
++  uint32_t factor = UINT32_MAX / (uint32_t) n;
++  uint32_t u;
++
++  do { u = MTRand_Long(rand) / factor; } while (u >= n);
++  return (int) (u + min);
+ 
+ }
+ 
+@@ -120,7 +126,7 @@ int Rand_Int(int min, int max)
+ * Apply Ahrens-Dieter algorithm for Gamma(delta,1)
+ */
+  
+-phydbl Ahrensdietergamma(phydbl alpha)
++phydbl Ahrensdietergamma(MTRand* rand, phydbl alpha)
+ {
+   phydbl x = 0.;
+ 
+@@ -132,8 +138,8 @@ phydbl Ahrensdietergamma(phydbl alpha)
+       int go = 0;
+       while (go==0) 
+ 	{
+-	  phydbl u = Uni();
+-	  phydbl w = Uni();
++	  phydbl u = Uni(rand);
++	  phydbl w = Uni(rand);
+ 	  phydbl v = b*u;
+ 	  if (v<=1.) 
+ 	    {
+@@ -154,7 +160,7 @@ phydbl Ahrensdietergamma(phydbl alpha)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rgamma(phydbl shape, phydbl scale)
++phydbl Rgamma(MTRand* rand, phydbl shape, phydbl scale)
+ {
+   /* Code below is stolen from R sources. Thanks to the R team! */
+   /* References:
+@@ -174,7 +180,6 @@ phydbl Rgamma(phydbl shape, phydbl scale)
+ 	  Computing, 12, 223-246.
+   */
+ 
+-
+   double a = (double)shape;
+   /* Constants : */
+   const static double sqrt32 = 5.656854;
+@@ -216,17 +221,17 @@ phydbl Rgamma(phydbl shape, phydbl scale)
+       e = 1.0 + exp_m1 * a;
+       for(;;) 
+         {
+-          p = e * Uni();
++          p = e * Uni(rand);
+           if (p >= 1.0) 
+             {
+               x = -log((e - p) / a);
+-              if (Rexp(1.) >= (1.0 - a) * log(x))
++              if (Rexp(rand,1.) >= (1.0 - a) * log(x))
+                 break;
+ 	    } 
+           else 
+             {
+               x = exp(log(p) / a);
+-              if (Rexp(1.) >= x)
++              if (Rexp(rand,1.) >= x)
+                 break;
+ 	    }
+ 	}
+@@ -247,13 +252,13 @@ phydbl Rgamma(phydbl shape, phydbl scale)
+                x = (s,1/2) -normal deviate. */
+ 
+     /* immediate acceptance (i) */
+-    t = Rnorm(0.0,1.0);
++    t = Rnorm(rand,0.0,1.0);
+     x = s + 0.5 * t;
+     ret_val = x * x;
+     if (t >= 0.0) return scale * ret_val;
+ 
+     /* Step 3: u = 0,1 - uniform sample. squeeze acceptance (s) */
+-    u = Uni();
++    u = Uni(rand);
+     if (d * u <= t * t * t) return scale * ret_val;
+ 
+     /* Step 4: recalculations of q0, b, si, c if necessary */
+@@ -311,8 +316,8 @@ phydbl Rgamma(phydbl shape, phydbl scale)
+ 	/* Step 8: e = standard exponential deviate
+ 	 *	u =  0,1 -uniform deviate
+ 	 *	t = (b,si)-double exponential (laplace) sample */
+-	e = Rexp(1.0);
+-	u = Uni();
++	e = Rexp(rand,1.0);
++	u = Uni(rand);
+ 	u = u + u - 1.0;
+ 	if (u < 0.0)
+ 	    t = b - si * e;
+@@ -345,9 +350,9 @@ phydbl Rgamma(phydbl shape, phydbl scale)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rexp(phydbl lambda)
++phydbl Rexp(MTRand* rand, phydbl lambda)
+ {
+-  return -log(Uni()+SMALL)/lambda;
++  return -log(Uni(rand)+SMALL)/lambda;
+ }
+ 
+ /*////////////////////////////////////////////////////////////
+@@ -355,18 +360,20 @@ phydbl Rexp(phydbl lambda)
+ 
+ /* Returns a random deviates from an exponential distribution */
+ /* left-truncated at 'left' and right-truncated at 'rght' */
+-phydbl Rexp_Trunc(phydbl lambda, phydbl left, phydbl rght)
++phydbl Rexp_Trunc(MTRand* rand, phydbl lambda, phydbl left, phydbl rght)
+ {
+   phydbl u;
+-  u = Uni();
++  u = Uni(rand);
+   return (left-log(1. - u*(1.-exp(-lambda*(rght-left))))/lambda);
+ }
+ 
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-phydbl Rnorm(phydbl mean, phydbl sd)
++phydbl Rnorm(MTRand* rand, phydbl mean, phydbl sd)
+ {
++  assert(rand);
++
+   /* Box-Muller transformation */
+   phydbl u1, u2, res;
+ 
+@@ -381,8 +388,8 @@ phydbl Rnorm(phydbl mean, phydbl sd)
+       assert(false);
+     }
+   
+-  /* u1=Uni(); */
+-  /* u2=Uni(); */
++  /* u1=Uni(rand); */
++  /* u2=Uni(rand); */
+   /* u1 = SQRT(-2.*log(u1))*COS(6.28318530717959f*u2); */
+ 
+   /* Polar */
+@@ -390,8 +397,8 @@ phydbl Rnorm(phydbl mean, phydbl sd)
+ 
+   do
+     {
+-      u1=Uni();
+-      u2=Uni();
++      u1=Uni(rand);
++      u2=Uni(rand);
+       x = 2.*u1-1.;
+       y = 2.*u2-1.;
+       d = x*x + y*y;
+@@ -411,7 +418,7 @@ phydbl Rnorm(phydbl mean, phydbl sd)
+ //////////////////////////////////////////////////////////////
+ 
+ 
+-phydbl *Rnorm_Multid(phydbl *mu, phydbl *cov, int dim)
++phydbl *Rnorm_Multid(MTRand* rand, phydbl *mu, phydbl *cov, int dim)
+ {
+   phydbl *L,*x,*y;
+   int i,j;
+@@ -421,7 +428,7 @@ phydbl *Rnorm_Multid(phydbl *mu, phydbl *cov, int dim)
+ 
+   L = (phydbl *)Cholesky_Decomp(cov,dim);
+ 
+-  for(i=0;i<dim;i++) x[i]=Rnorm(0.0,1.0);
++  for(i=0;i<dim;i++) x[i]=Rnorm(rand,0.0,1.0);
+   for(i=0;i<dim;i++) for(j=0;j<dim;j++) y[i] += L[i*dim+j]*x[j];
+   for(i=0;i<dim;i++) y[i] += mu[i];
+ 
+@@ -434,7 +441,7 @@ phydbl *Rnorm_Multid(phydbl *mu, phydbl *cov, int dim)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rnorm_Trunc_Inverse(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
++phydbl Rnorm_Trunc_Inverse(MTRand* rand, phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
+ {
+ 
+   phydbl u, ret_val,eps;
+@@ -463,7 +470,7 @@ phydbl Rnorm_Trunc_Inverse(phydbl mean, phydbl sd, phydbl min, phydbl max, int *
+   /*       Simple inversion method. Seems to work well. Needs more thorough testing though... */
+   cdf_min = Pnorm(z_min,0.0,1.0);
+   cdf_max = Pnorm(z_max,0.0,1.0);
+-  u = cdf_min + (cdf_max-cdf_min) * Uni();
++  u = cdf_min + (cdf_max-cdf_min) * Uni(rand);
+   z = PointNormal(u);
+ 	
+   if((z < z_min-eps) || (z > z_max+eps))
+@@ -485,13 +492,13 @@ phydbl Rnorm_Trunc_Inverse(phydbl mean, phydbl sd, phydbl min, phydbl max, int *
+ //////////////////////////////////////////////////////////////
+ /* Borrowed from https://github.com/olafmersmann/truncnorm/blob/afc91b696db8a3feda25d39435fd979bacd962c6/src/rtruncnorm.c */
+ 
+-phydbl Rnorm_Trunc_Algo1(phydbl alpha, phydbl beta, int *err)
++phydbl Rnorm_Trunc_Algo1(MTRand* rand, phydbl alpha, phydbl beta, int *err)
+ {
+   phydbl z = -DBL_MAX;
+   int iter = 0;
+   while(z < alpha || z > beta)
+     {
+-      z = Rnorm(0.0,1.0);
++      z = Rnorm(rand,0.0,1.0);
+       ++iter;
+       if(iter > 1E+5)
+         {
+@@ -505,7 +512,7 @@ phydbl Rnorm_Trunc_Algo1(phydbl alpha, phydbl beta, int *err)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rnorm_Trunc_Algo2(phydbl alpha, phydbl beta, int *err)
++phydbl Rnorm_Trunc_Algo2(MTRand* rand, phydbl alpha, phydbl beta, int *err)
+ {
+   phydbl z = 0.0;
+   phydbl d_alpha = Dnorm(alpha,0.0,1.0);  
+@@ -513,7 +520,7 @@ phydbl Rnorm_Trunc_Algo2(phydbl alpha, phydbl beta, int *err)
+   int iter = 0;
+   do
+     {
+-      z = Uni()*(beta-alpha) + alpha;
++      z = Uni(rand)*(beta-alpha) + alpha;
+       ++iter;
+       if(iter > 1E+5)
+         {
+@@ -521,21 +528,21 @@ phydbl Rnorm_Trunc_Algo2(phydbl alpha, phydbl beta, int *err)
+           break;
+         }
+     }
+-  while(Uni() * ub > Dnorm(z,0.0,1.0));
++  while(Uni(rand) * ub > Dnorm(z,0.0,1.0));
+   return(z);
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rnorm_Trunc_Algo3(phydbl alpha, phydbl beta, int *err)
++phydbl Rnorm_Trunc_Algo3(MTRand* rand, phydbl alpha, phydbl beta, int *err)
+ {
+   phydbl z = alpha - 1.0;
+   int iter = 0;
+   *err = NO;
+   while(z < alpha || z > beta)
+     {
+-      z = Rnorm(0,1);
++      z = Rnorm(rand,0,1);
+       z = fabs(z);
+       ++iter;
+       if(iter > 1E+5)
+@@ -550,7 +557,7 @@ phydbl Rnorm_Trunc_Algo3(phydbl alpha, phydbl beta, int *err)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rnorm_Trunc_Algo4(phydbl alpha, phydbl beta, int *err)
++phydbl Rnorm_Trunc_Algo4(MTRand* rand, phydbl alpha, phydbl beta, int *err)
+ {
+   phydbl z = 0.0;
+   const phydbl ainv = 1.0/alpha;
+@@ -559,7 +566,7 @@ phydbl Rnorm_Trunc_Algo4(phydbl alpha, phydbl beta, int *err)
+   *err = NO;
+   do
+     {
+-      z = Rexp(ainv) + alpha;
++      z = Rexp(rand,ainv) + alpha;
+       rho = exp(-0.5 * pow((z-alpha),2));
+       ++iter;
+       if(iter > 1E+5)
+@@ -568,7 +575,7 @@ phydbl Rnorm_Trunc_Algo4(phydbl alpha, phydbl beta, int *err)
+           break;
+         }
+     }
+-  while(Uni() > rho || z > beta);
++  while(Uni(rand) > rho || z > beta);
+   return(z);
+ }
+ 
+@@ -576,7 +583,7 @@ phydbl Rnorm_Trunc_Algo4(phydbl alpha, phydbl beta, int *err)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rnorm_Trunc(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
++phydbl Rnorm_Trunc(MTRand* rand, phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
+ {
+   phydbl alpha,beta;
+   phydbl d_alpha,d_beta;
+@@ -595,12 +602,12 @@ phydbl Rnorm_Trunc(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
+         {
+           if(!(d_alpha > 0.15) || !(d_beta > 0.15))
+             {
+-              z = Rnorm_Trunc_Algo1(alpha,beta,error);
++              z = Rnorm_Trunc_Algo1(rand,alpha,beta,error);
+               return(mean + sd * z);
+             }
+           else
+             {
+-              z = Rnorm_Trunc_Algo2(alpha,beta,error);
++              z = Rnorm_Trunc_Algo2(rand,alpha,beta,error);
+               return(mean + sd * z);
+             }
+         }
+@@ -608,19 +615,19 @@ phydbl Rnorm_Trunc(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
+         {
+           if(!(d_alpha / d_beta > 2.18))
+             {
+-              z = Rnorm_Trunc_Algo2(alpha,beta,error);
++              z = Rnorm_Trunc_Algo2(rand,alpha,beta,error);
+               return(mean + sd * z);
+             }
+           else
+             {
+               if(!(alpha > 0.725))
+                 {
+-                  z = Rnorm_Trunc_Algo3(alpha,beta,error);
++                  z = Rnorm_Trunc_Algo3(rand,alpha,beta,error);
+                   return(mean + sd * z);
+                 }
+               else
+                 {
+-                  z = Rnorm_Trunc_Algo4(alpha,beta,error);
++                  z = Rnorm_Trunc_Algo4(rand,alpha,beta,error);
+                   return(mean + sd * z);
+                 }
+             }
+@@ -629,17 +636,17 @@ phydbl Rnorm_Trunc(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
+         {
+           if(!(d_beta / d_alpha > 2.18))
+             {
+-              z = Rnorm_Trunc_Algo2(alpha,beta,error);
++              z = Rnorm_Trunc_Algo2(rand,alpha,beta,error);
+               return(mean - sd * z);
+             }
+           else if(beta > -0.725)
+             {
+-              z = Rnorm_Trunc_Algo3(alpha,beta,error);
++              z = Rnorm_Trunc_Algo3(rand,alpha,beta,error);
+               return(mean - sd * z);
+             }
+           else
+             {              
+-              z = Rnorm_Trunc_Algo4(alpha,beta,error);
++              z = Rnorm_Trunc_Algo4(rand,alpha,beta,error);
+               return(mean - sd * z);
+             }
+         }
+@@ -652,7 +659,7 @@ phydbl Rnorm_Trunc(phydbl mean, phydbl sd, phydbl min, phydbl max, int *error)
+ //////////////////////////////////////////////////////////////
+ 
+ 
+-phydbl *Rnorm_Multid_Trunc(phydbl *mean, phydbl *cov, phydbl *min, phydbl *max, int dim)
++phydbl *Rnorm_Multid_Trunc(MTRand* rand, phydbl *mean, phydbl *cov, phydbl *min, phydbl *max, int dim)
+ {
+   int i,j;
+   phydbl *L,*x, *u;
+@@ -666,7 +673,7 @@ phydbl *Rnorm_Multid_Trunc(phydbl *mean, phydbl *cov, phydbl *min, phydbl *max,
+   
+   low = (min[0]-mean[0])/L[0*dim+0];
+   up  = (max[0]-mean[0])/L[0*dim+0];
+-  u[0] = Rnorm_Trunc(0.0,1.0,low,up,&err);
++  u[0] = Rnorm_Trunc(rand,0.0,1.0,low,up,&err);
+ 
+   for(i=1;i<dim;i++)
+     {
+@@ -674,7 +681,7 @@ phydbl *Rnorm_Multid_Trunc(phydbl *mean, phydbl *cov, phydbl *min, phydbl *max,
+       for(j=0;j<i;j++) rec += L[i*dim+j] * u[j];
+       low  = (min[i]-mean[i]-rec)/L[i*dim+i];
+       up   = (max[i]-mean[i]-rec)/L[i*dim+i];
+-      u[i] = Rnorm_Trunc(0.0,1.0,low,up,&err);
++      u[i] = Rnorm_Trunc(rand,0.0,1.0,low,up,&err);
+     }
+ 
+   x = Matrix_Mult(L,u,dim,dim,dim,1);
+@@ -709,11 +716,11 @@ phydbl *Rnorm_Multid_Trunc(phydbl *mean, phydbl *cov, phydbl *min, phydbl *max,
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ /* Inversion method for sampling from Geometric distibution */
+-phydbl Rgeom(phydbl p)
++phydbl Rgeom(MTRand* rand, phydbl p)
+ {
+   phydbl x,u;
+ 
+-  u = Uni();
++  u = Uni(rand);
+   if(u < SMALL) return(0.0);
+   x = log(u) / log(1. - p);
+   
+@@ -767,7 +774,7 @@ phydbl Pgeom(phydbl k, phydbl p)
+  * from modified normal distributions.
+  * ACM Trans. Math. Software 8, 163-179.
+  */
+-phydbl Rpois(phydbl mmu)
++phydbl Rpois(MTRand* rand, phydbl mmu)
+ {
+   double mu = (double)mmu;
+   
+@@ -833,7 +840,7 @@ phydbl Rpois(phydbl mmu)
+         for(;;) 
+           {
+             /* Step U. uniform sample for inversion method */
+-            u = Uni();
++            u = Uni(rand);
+             if (u <= p0) return 0.;
+             /* Step T. table comparison until the end pp[l] of the
+                pp-table of cumulative poisson probabilities
+@@ -864,7 +871,7 @@ phydbl Rpois(phydbl mmu)
+   } /* end {initialize persistent vars} */
+   /* Only if mu >= 10 : ----------------------- */
+   /* Step N. normal sample */
+-  g = mu + s * Rnorm(0.0,1.0);/* norm_rand() ~ N(0,1), standard normal */
++  g = mu + s * Rnorm(rand,0.0,1.0);/* norm_rand() ~ N(0,1), standard normal */
+   if (g >= 0.) 
+     {
+       pois = floor(g);
+@@ -874,7 +881,7 @@ phydbl Rpois(phydbl mmu)
+       /* Step S. squeeze acceptance */
+       fk = pois;
+       difmuk = mu - fk;
+-      u = Uni(); /* ~ U(0,1) - sample */
++      u = Uni(rand); /* ~ U(0,1) - sample */
+       if (d * u >= difmuk * difmuk * difmuk)
+         return((phydbl)pois);
+     }
+@@ -904,10 +911,10 @@ phydbl Rpois(phydbl mmu)
+   for(;;) 
+     {
+       /* Step E. Exponential Sample */
+-      E = Rexp(1.0); /* ~ Exp(1) (standard exponential) */
++      E = Rexp(rand, 1.0); /* ~ Exp(1) (standard exponential) */
+       /* sample t from the laplace 'hat'
+          (if t <= -0.6744 then pk < fk for all mu >= 10.) */
+-      u = 2. * Uni() - 1.;
++      u = 2. * Uni(rand) - 1.;
+       /* t = 1.8 + fsign(E, u); */
+       t = 1.8 + ((u >= 0.0) ? fabs(E) : -fabs(E));
+       if (t > -0.6744)
+@@ -1222,11 +1229,11 @@ phydbl Dnbinom(phydbl x, phydbl n, phydbl p, int logit)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Rnbinom(phydbl n, phydbl p)
++phydbl Rnbinom(MTRand* rand, phydbl n, phydbl p)
+ {
+   phydbl y,x;
+-  y = Rgamma(n,(1.-p)/p);
+-  x = Rpois(y);
++  y = Rgamma(rand,n,(1.-p)/p);
++  x = Rpois(rand,y);
+   return(x);
+ }
+ 
+@@ -2061,7 +2068,7 @@ phydbl LnChoose(int n, int k)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl *Covariance_Matrix(t_tree *tree)
++phydbl *Covariance_Matrix(MTRand* rand, t_tree *tree)
+ {
+   phydbl *cov, *mean;
+   int *ori_wght,*site_num;
+@@ -2094,11 +2101,11 @@ phydbl *Covariance_Matrix(t_tree *tree)
+ 
+       for(i=0;i<tree->data->init_len;i++)
+ 	{
+-	  position = Rand_Int(0,(int)(tree->data->init_len-1.0));
++	  position = Rand_Int(rand,0,(int)(tree->data->init_len-1.0));
+ 	  tree->data->wght[site_num[position]] += 1;
+ 	}
+ 
+-      Round_Optimize(tree,ROUND_MAX);
++      Round_Optimize(rand,tree,ROUND_MAX);
+       
+       For(i,2*tree->n_otu-3) For(j,2*tree->n_otu-3) cov[i*dim+j] += log(tree->a_edges[i]->l->v) * log(tree->a_edges[j]->l->v);  
+       For(i,2*tree->n_otu-3) mean[i] += log(tree->a_edges[i]->l->v);
+@@ -4162,7 +4169,7 @@ phydbl Covariance(phydbl *x, phydbl *y, int n)
+    the interval [min,max], under the linear constraint X.lambda=k 
+ */
+    
+-phydbl *Rnorm_Multid_Trunc_Constraint(phydbl *mu, phydbl *cov, phydbl *min, phydbl *max, phydbl *lambda, phydbl k, phydbl *res, int len)
++phydbl *Rnorm_Multid_Trunc_Constraint(MTRand* rand, phydbl *mu, phydbl *cov, phydbl *min, phydbl *max, phydbl *lambda, phydbl k, phydbl *res, int len)
+ {
+ 
+   phydbl *loc_res;
+@@ -4221,7 +4228,7 @@ phydbl *Rnorm_Multid_Trunc_Constraint(phydbl *mu, phydbl *cov, phydbl *min, phyd
+ 		}
+ 
+ 	      err = NO;
+-	      zi = Rnorm_Trunc(cond_mean,SQRT(cond_var),
++	      zi = Rnorm_Trunc(rand,cond_mean,SQRT(cond_var),
+ 			       MAX(lambda[i]*min[i],alpha-lambda[cond]*max[cond]),
+ 			       MIN(lambda[i]*max[i],alpha-lambda[cond]*min[cond]),&err);
+ 	      if(err == YES)
+@@ -4446,7 +4453,7 @@ void Integrated_Geometric_Brownian_Bridge_Var(phydbl T, phydbl A, phydbl B, phyd
+ //////////////////////////////////////////////////////////////
+ // Inverse method to sample from X where P(X=xi)=pi[i]
+ 
+-int Sample_i_With_Proba_pi(phydbl *pi, int len)
++int Sample_i_With_Proba_pi(MTRand* rand, phydbl *pi, int len)
+ {
+   phydbl *cum_pi;
+   int i;
+@@ -4466,7 +4473,7 @@ int Sample_i_With_Proba_pi(phydbl *pi, int len)
+       Exit("\n");
+     }
+ 
+-  u = Uni();
++  u = Uni(rand);
+   for(i=0;i<len;i++) if(cum_pi[i] > u) break;
+ 
+   if(i == len)
+@@ -4490,7 +4497,7 @@ int Sample_i_With_Proba_pi(phydbl *pi, int len)
+ // https://jugit.fz-juelich.de/mlz/ransampl/blob/master/lib/ransampl.c
+ // and
+ // https://possiblywrong.wordpress.com/2012/02/05/the-alias-method-and-double-precision/
+-int* Sample_n_i_With_Proba_pi(phydbl *pi, int len, int n_elts)
++int* Sample_n_i_With_Proba_pi(MTRand* rand, phydbl *pi, int len, int n_elts)
+ {
+   int i,n;
+   phydbl sum;
+@@ -4565,8 +4572,8 @@ int* Sample_n_i_With_Proba_pi(phydbl *pi, int len, int n_elts)
+ 
+   for(n=0; n<n_elts;n++)
+     {
+-      phydbl r1 = Uni();
+-      phydbl r2 = Uni();
++      phydbl r1 = Uni(rand);
++      phydbl r2 = Uni(rand);
+       i = (int) (len * r1);
+       sampled[n] = (r2 < prob[i] ? i : alias[i]);
+     }
+@@ -4656,7 +4663,8 @@ phydbl Inverse_Truncated_Normal(phydbl y, phydbl mu, phydbl sigma, phydbl lim_in
+ // Returns a vector with a permutation of all the integers from 0
+ // to len-1. Fisher-Yates algorithm.
+ 
+-int *Permutate(int len)
++// FIXME: Maybe make inplace?
++int *Permutate(MTRand* rand, int len)
+ {
+   int i,pos,tmp;
+   int *x;
+@@ -4667,7 +4675,7 @@ int *Permutate(int len)
+ 
+   for(i=0;i<len;i++)
+     {
+-      pos = Rand_Int(0,len-1);
++      pos = Rand_Int(rand,0,len-1);
+       
+       tmp    = x[i];
+       x[i]   = x[pos];
+@@ -4696,7 +4704,7 @@ int *Reverse(int *v, int len)
+ // Returns the p-value for the Mantel test of correlation between
+ // matrices x and y.
+ 
+-phydbl Mantel(phydbl *x, phydbl *y, int nrow, int ncol)
++phydbl Mantel(MTRand* rand, phydbl *x, phydbl *y, int nrow, int ncol)
+ { 
+  
+   phydbl obs_stat;  // Value of the statistic on the observed data
+@@ -4731,7 +4739,7 @@ phydbl Mantel(phydbl *x, phydbl *y, int nrow, int ncol)
+   p_val   = 0.0;
+   for(k=0;k<npermut;k++)
+     {
+-      permut = Permutate(nrow);
++      permut = Permutate(rand,nrow);
+ 
+       sumxy = .0;
+       for(i=0;i<nrow;i++)
+@@ -4824,12 +4832,12 @@ int Modulo (int a, int b)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Runif_Disk(phydbl *sampled_x, phydbl *sampled_y, phydbl centrx, phydbl centry, phydbl radius)
++void Runif_Disk(MTRand* rand, phydbl *sampled_x, phydbl *sampled_y, phydbl centrx, phydbl centry, phydbl radius)
+ {
+   phydbl r,theta;
+   
+-  r     = Uni();
+-  theta = Uni()*2.*PI;
++  r     = Uni(rand);
++  theta = Uni(rand)*2.*PI;
+ 
+   (*sampled_x) = SQRT(r)*COS(theta);
+   (*sampled_y) = SQRT(r)*SIN(theta);
+@@ -4845,17 +4853,17 @@ void Runif_Disk(phydbl *sampled_x, phydbl *sampled_y, phydbl centrx, phydbl cent
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Random_String(char *s, int len)
++void Random_String(MTRand* rand, char *s, int len)
+ {
+   int i;
+-  for(i=0;i<len;i++) s[i] = Rand_Int(97,121);
++  for(i=0;i<len;i++) s[i] = Rand_Int(rand,97,121);
+   s[i] = '\0';
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-int *Random_Permut(int n)
++int *Random_Permut(MTRand* rand, int n)
+ {
+   int *permut;
+   int i,j;
+@@ -4873,7 +4881,7 @@ int *Random_Permut(int n)
+   
+   for(i=0;i<n-1;i++)
+     {
+-      j = Rand_Int(i,n-1);
++      j = Rand_Int(rand,i,n-1);
+       tmp = permut[i];
+       permut[i] = permut[j];
+       permut[j] = tmp;      
+@@ -4886,7 +4894,7 @@ int *Random_Permut(int n)
+ //////////////////////////////////////////////////////////////
+ 
+ /* Generate a random polygon with n vertices. Each point lies in [0,1] */
+-t_poly *Rpoly(int n)
++t_poly *Rpoly(MTRand* rand, int n)
+ {
+   t_poly *p;
+   int i;
+@@ -4896,8 +4904,8 @@ t_poly *Rpoly(int n)
+   
+   for(i=0;i<n;i++)
+     {
+-      p->poly_vert[i]->lonlat[0] = Uni();
+-      p->poly_vert[i]->lonlat[1] = Uni();
++      p->poly_vert[i]->lonlat[0] = Uni(rand);
++      p->poly_vert[i]->lonlat[1] = Uni(rand);
+     }
+   
+   return(p);
+@@ -4906,7 +4914,7 @@ t_poly *Rpoly(int n)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-phydbl Area_Of_Poly_Monte_Carlo(t_poly *poly, t_geo_coord *lim)
++phydbl Area_Of_Poly_Monte_Carlo(MTRand* rand, t_poly *poly, t_geo_coord *lim)
+ {
+   int n_hit,n_trials,trial;
+   t_geo_coord *point;
+@@ -4918,8 +4926,8 @@ phydbl Area_Of_Poly_Monte_Carlo(t_poly *poly, t_geo_coord *lim)
+   n_hit = 0;
+   do
+     {
+-      point->lonlat[0] = Uni()*lim->lonlat[0];
+-      point->lonlat[1] = Uni()*lim->lonlat[1];
++      point->lonlat[0] = Uni(rand)*lim->lonlat[0];
++      point->lonlat[1] = Uni(rand)*lim->lonlat[1];
+       if(Is_In_Polygon(point,poly) == YES) n_hit++;
+       trial++;
+     }
+@@ -5123,7 +5131,7 @@ int *Ranks(phydbl *x, int len)
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-phydbl *Brownian_Bridge_Generate(phydbl start, phydbl end, phydbl var, phydbl beg_time, phydbl end_time, int n_steps, phydbl *time)
++phydbl *Brownian_Bridge_Generate(MTRand* rand, phydbl start, phydbl end, phydbl var, phydbl beg_time, phydbl end_time, int n_steps, phydbl *time)
+ {
+   phydbl *state,end_brown;
+   int i;
+@@ -5132,8 +5140,8 @@ phydbl *Brownian_Bridge_Generate(phydbl start, phydbl end, phydbl var, phydbl be
+   if(beg_time > end_time) Generic_Exit(__FILE__,__LINE__,__FUNCTION__);
+   for(i=0;i<n_steps-1;i++) if(!(time[i+1] > time[i])) Generic_Exit(__FILE__,__LINE__,__FUNCTION__);
+ 
+-  state = Brownian_Generate(var,n_steps,beg_time,time);
+-  end_brown = Rnorm(state[n_steps-1],SQRT((time[n_steps-1] - end_time)*var));
++  state = Brownian_Generate(rand,var,n_steps,beg_time,time);
++  end_brown = Rnorm(rand,state[n_steps-1],SQRT((time[n_steps-1] - end_time)*var));
+ 
+   for(i=0;i<n_steps;i++)
+     {
+@@ -5148,7 +5156,7 @@ phydbl *Brownian_Bridge_Generate(phydbl start, phydbl end, phydbl var, phydbl be
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-phydbl *Brownian_Generate(phydbl var, int n_steps, phydbl beg_time, phydbl *time)
++phydbl *Brownian_Generate(MTRand* rand, phydbl var, int n_steps, phydbl beg_time, phydbl *time)
+ {
+   phydbl *state;
+   int i;
+@@ -5157,11 +5165,11 @@ phydbl *Brownian_Generate(phydbl var, int n_steps, phydbl beg_time, phydbl *time
+ 
+   state = (phydbl *)mCalloc(n_steps,sizeof(phydbl));
+ 
+-  state[0] = Rnorm(0.0,SQRT((time[0] - beg_time)*var));
++  state[0] = Rnorm(rand,0.0,SQRT((time[0] - beg_time)*var));
+ 
+   for(i=1;i<n_steps;i++)
+     {
+-      state[i] = Rnorm(state[i-1],SQRT((time[i]-time[i-1])*var));
++      state[i] = Rnorm(rand,state[i-1],SQRT((time[i]-time[i-1])*var));
+       if(time[i] < time[i-1]) Generic_Exit(__FILE__,__LINE__,__FUNCTION__);
+     }
+ 
+@@ -5171,15 +5179,15 @@ phydbl *Brownian_Generate(phydbl var, int n_steps, phydbl beg_time, phydbl *time
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-phydbl *Random_Walk_Bridged_Generate(phydbl start, phydbl end, phydbl var, int n_steps)
++phydbl *Random_Walk_Bridged_Generate(MTRand* rand, phydbl start, phydbl end, phydbl var, int n_steps)
+ {
+   phydbl *state,end_walk;
+   int i;
+ 
+   if(n_steps == 0) Generic_Exit(__FILE__,__LINE__,__FUNCTION__);
+ 
+-  state = Random_Walk_Generate(var,n_steps);
+-  end_walk = Rnorm(state[n_steps-1],SQRT(var));
++  state = Random_Walk_Generate(rand,var,n_steps);
++  end_walk = Rnorm(rand,state[n_steps-1],SQRT(var));
+ 
+   for(i=0;i<n_steps;i++)
+     {
+@@ -5193,7 +5201,7 @@ phydbl *Random_Walk_Bridged_Generate(phydbl start, phydbl end, phydbl var, int n
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-phydbl *Random_Walk_Generate(phydbl var, int n_steps)
++phydbl *Random_Walk_Generate(MTRand* rand, phydbl var, int n_steps)
+ {
+   phydbl *state;
+   int i;
+@@ -5202,9 +5210,9 @@ phydbl *Random_Walk_Generate(phydbl var, int n_steps)
+ 
+   state = (phydbl *)mCalloc(n_steps,sizeof(phydbl));
+ 
+-  state[0] = Rnorm(0.0,SQRT(var));
++  state[0] = Rnorm(rand,0.0,SQRT(var));
+ 
+-  for(i=1;i<n_steps;i++) state[i] = Rnorm(state[i-1],SQRT(var));
++  for(i=1;i<n_steps;i++) state[i] = Rnorm(rand,state[i-1],SQRT(var));
+ 
+   return(state);
+ }

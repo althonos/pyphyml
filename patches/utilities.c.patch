@@ -1,8 +1,68 @@
 diff --git a/src/utilities.c b/src/utilities.c
-index 7dd6c70..458957f 100644
+index 7dd6c70..3d92ac1 100644
 --- a/src/utilities.c
 +++ b/src/utilities.c
-@@ -4595,11 +4595,16 @@ void Record_Model(t_mod *ori, t_mod *cpy)
+@@ -12,6 +12,7 @@ the GNU public licence. See http://www.opensource.org for details.
+ #include "utilities.h"
+ #include "assert.h"
+ #include "tbe.h"
++#include "random.h"
+ 
+ #ifdef BEAGLE
+ #include "beagle_utils.h"
+@@ -3881,7 +3882,7 @@ void Clean_Tree_Connections(t_tree *tree)
+    if tbe_bootstrap == 0  => Classical FBP (Felsenstein bootstrap proportions)
+    else => TBE (Transfer bootstrap expectation)
+ */
+-void Bootstrap(t_tree *tree)
++void Bootstrap(MTRand* rand, t_tree *tree)
+ {
+   int    *site_num, n_site;
+   int     replicate, j, k;
+@@ -3930,7 +3931,7 @@ void Bootstrap(t_tree *tree)
+     init_len = 0;
+     for (j = 0; j < boot_data->init_len; j++)
+     {
+-      position = Rand_Int(0, (int)(tree->data->init_len - 1.0));
++      position = Rand_Int(rand,0, (int)(tree->data->init_len - 1.0));
+       boot_data->wght[site_num[position]] += 1;
+       init_len++;
+     }
+@@ -3949,7 +3950,7 @@ void Bootstrap(t_tree *tree)
+     else if (tree->io->datatype == AA)
+       Get_AA_Freqs(boot_data);
+ 
+-    if (tree->io->random_boot_seq_order) Randomize_Sequence_Order(boot_data);
++    if (tree->io->random_boot_seq_order) Randomize_Sequence_Order(rand, boot_data);
+ 
+     Set_D_States(boot_data, tree->io->datatype, tree->io->state_len);
+ 
+@@ -4011,7 +4012,7 @@ void Bootstrap(t_tree *tree)
+ 
+     if ((boot_tree->mod->s_opt->random_input_tree) &&
+         (boot_tree->mod->s_opt->topo_search == SPR_MOVE))
+-      Random_Tree(boot_tree);
++      Random_Tree(rand, boot_tree);
+ 
+     Connect_CSeqs_To_Nodes(boot_data, tree->io, boot_tree);
+ 
+@@ -4042,13 +4043,13 @@ void Bootstrap(t_tree *tree)
+ 
+     if (boot_tree->mod->s_opt->opt_topo)
+     {
+-      Global_Spr_Search(boot_tree);
++      Global_Spr_Search(rand,boot_tree);
+     }
+     else
+     {
+       if (boot_tree->mod->s_opt->opt_subst_param ||
+           boot_tree->mod->s_opt->opt_bl_one_by_one)
+-        Round_Optimize(boot_tree, ROUND_MAX);
++        Round_Optimize(rand, boot_tree, ROUND_MAX);
+       else
+         Lk(NULL, boot_tree);
+     }
+@@ -4595,11 +4596,16 @@ void Record_Model(t_mod *ori, t_mod *cpy)
    cpy->ras->normalise_rr = ori->ras->normalise_rr;
    cpy->l_var_sigma->v    = ori->l_var_sigma->v;
  
@@ -24,7 +84,7 @@ index 7dd6c70..458957f 100644
  
    strcpy(cpy->modelname->s, ori->modelname->s);
    strcpy(cpy->custom_mod_string->s, ori->custom_mod_string->s);
-@@ -4637,6 +4642,7 @@ void Record_Model(t_mod *ori, t_mod *cpy)
+@@ -4637,6 +4643,7 @@ void Record_Model(t_mod *ori, t_mod *cpy)
    for (i = 0; i < cpy->ns * cpy->ns; ++i)
      cpy->r_mat->qmat->v[i] = ori->r_mat->qmat->v[i];
  
@@ -32,3 +92,495 @@ index 7dd6c70..458957f 100644
    for (i = 0; i < cpy->ras->n_catg; i++)
    {
      cpy->ras->gamma_r_proba->v[i] = ori->ras->gamma_r_proba->v[i];
+@@ -7613,7 +7620,7 @@ t_node *Common_Nodes_Btw_Two_Edges(t_edge *a, t_edge *b)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Random_Tree(t_tree *tree)
++void Random_Tree(MTRand* rand, t_tree *tree)
+ {
+   int   *is_available, *list_of_nodes;
+   int    i, node_num, step, n_available;
+@@ -7634,7 +7641,7 @@ void Random_Tree(t_tree *tree)
+   {
+     /*       node_num =
+      * (int)RINT(rand()/(phydbl)(RAND_MAX+1.0)*(tree->n_otu-1-step)); */
+-    node_num               = Rand_Int(0, tree->n_otu - 1 - step);
++    node_num               = Rand_Int(rand, 0, tree->n_otu - 1 - step);
+     node_num               = list_of_nodes[node_num];
+     is_available[node_num] = 0;
+     for (i = 0; i < tree->n_otu; i++) list_of_nodes[i] = -1;
+@@ -7649,7 +7656,7 @@ void Random_Tree(t_tree *tree)
+ 
+     /*       node_num =
+      * (int)RINT(rand()/(phydbl)(RAND_MAX+1.0)*(tree->n_otu-2-step)); */
+-    node_num               = Rand_Int(0, tree->n_otu - 2 - step);
++    node_num               = Rand_Int(rand, 0, tree->n_otu - 2 - step);
+     node_num               = list_of_nodes[node_num];
+     is_available[node_num] = 0;
+     for (i = 0; i < tree->n_otu; i++) list_of_nodes[i] = -1;
+@@ -7948,7 +7955,7 @@ void Swap_Partial_Lk(t_edge *a, t_edge *b, int side_a, int side_b, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Random_NNI(int n_moves, t_tree *tree)
++void Random_NNI(MTRand* rand, int n_moves, t_tree *tree)
+ {
+   int     i, j;
+   t_edge *b;
+@@ -7959,7 +7966,7 @@ void Random_NNI(int n_moves, t_tree *tree)
+   for (i = 0; i < n_moves; ++i)
+   {
+     n_target =
+-        tree->a_nodes[tree->n_otu + (int)((phydbl)rand() / RAND_MAX *
++        tree->a_nodes[tree->n_otu + (int)(Uni(rand) *
+                                           (2 * tree->n_otu - 3 - tree->n_otu))];
+     for (j = 0; j < 3; ++j)
+       if (!n_target->v[j]->tax)
+@@ -8294,7 +8301,7 @@ void Warn_And_Exit(const char *s)
+ 
+ // Apply random prune and regraft moves to an existing tree. As opposed to
+ // Random_Tree, using this function does not break the likelihood structure.
+-void Randomize_Tree(t_tree *tree, int n_prune_regraft)
++void Randomize_Tree(MTRand* rand, t_tree *tree, int n_prune_regraft)
+ {
+   t_node *rnd_node;
+   t_edge *rnd_edge, *b_target, *b_residual, **target_list;
+@@ -8305,10 +8312,10 @@ void Randomize_Tree(t_tree *tree, int n_prune_regraft)
+   n_rand = n_prune_regraft;
+   do
+   {
+-    rnd_node = tree->a_nodes[Rand_Int(tree->n_otu, 2 * tree->n_otu - 3)];
++    rnd_node = tree->a_nodes[Rand_Int(rand, tree->n_otu, 2 * tree->n_otu - 3)];
+     assert(rnd_node != tree->n_root && rnd_node->tax == NO);
+ 
+-    rnd_edge = rnd_node->b[Rand_Int(0, 2)];
++    rnd_edge = rnd_node->b[Rand_Int(rand, 0, 2)];
+ 
+     Prune_Subtree(rnd_node,
+                   rnd_node == rnd_edge->left ? rnd_edge->rght : rnd_edge->left,
+@@ -8325,7 +8332,7 @@ void Randomize_Tree(t_tree *tree, int n_prune_regraft)
+         Get_List_Of_Adjacent_Targets(b_target->rght, b_target->rght->v[i], NULL,
+                                      &target_list, &n_targets, 0, tree->n_otu);
+ 
+-    if (n_targets > 0) b_target = target_list[Rand_Int(0, n_targets - 1)];
++    if (n_targets > 0) b_target = target_list[Rand_Int(rand, 0, n_targets - 1)];
+ 
+     assert(b_target != NULL);
+ 
+@@ -8340,7 +8347,7 @@ void Randomize_Tree(t_tree *tree, int n_prune_regraft)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Randomize_Sequence_Order(calign *cdata)
++void Randomize_Sequence_Order(MTRand* rand, calign *cdata)
+ {
+   int        i, exchange_with;
+   phydbl     buff_dbl;
+@@ -8350,10 +8357,12 @@ void Randomize_Sequence_Order(calign *cdata)
+   exchange_with = -1;
+   for (i = 0; i < cdata->n_otu; i++)
+   {
+-    buff_dbl = rand();
+-    buff_dbl /= (RAND_MAX + 1.);
+-    buff_dbl *= cdata->n_otu;
+-    exchange_with = (int)FLOOR(buff_dbl);
++    // buff_dbl = rand();
++    // buff_dbl /= (RAND_MAX + 1.);
++    // buff_dbl = Uni(rand);
++    // buff_dbl *= cdata->n_otu;
++    // exchange_with = (int)FLOOR(buff_dbl);
++    exchange_with = Rand_Int(rand, 0, cdata->n_otu - 1);
+ 
+     buff_name                         = cdata->c_seq[i]->name;
+     cdata->c_seq[i]->name             = cdata->c_seq[exchange_with]->name;
+@@ -8551,7 +8560,7 @@ void Update_Ancestors(t_node *a, t_node *d, t_edge *b, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ 
+ /* Generate a random unrooted tree with 'n_otu' OTUs */
+-t_tree *Generate_Random_Tree_From_Scratch(int n_otu, int rooted)
++t_tree *Generate_Random_Tree_From_Scratch(MTRand* rand, int n_otu, int rooted)
+ {
+   t_tree *tree;
+   int    *connected, *nonconnected, *available_nodes;
+@@ -8613,8 +8622,9 @@ t_tree *Generate_Random_Tree_From_Scratch(int n_otu, int rooted)
+ 
+   for (i = 0; i < tree->n_otu - 1; i++)
+   {
+-    u = rand();
+-    u /= RAND_MAX;
++    u = Uni(rand);
++    // u = rand();
++    // u /= RAND_MAX;
+ 
+     if (fabs(lambda - mu) > 1.E-4)
+       t[i] = (log(phi - u * rho * lambda) -
+@@ -8643,7 +8653,7 @@ t_tree *Generate_Random_Tree_From_Scratch(int n_otu, int rooted)
+   n_connected = 0;
+   do
+   {
+-    n1            = Rand_Int(0, n_nonconnected - 1);
++    n1            = Rand_Int(rand, 0, n_nonconnected - 1);
+     n1            = nonconnected[n1];
+     connected[n1] = 1;
+ 
+@@ -8653,7 +8663,7 @@ t_tree *Generate_Random_Tree_From_Scratch(int n_otu, int rooted)
+       nonconnected[n_nonconnected++] = i;
+     }
+ 
+-    n2            = Rand_Int(0, n_nonconnected - 1);
++    n2            = Rand_Int(rand, 0, n_nonconnected - 1);
+     n2            = nonconnected[n2];
+     connected[n2] = 1;
+ 
+@@ -8679,7 +8689,7 @@ t_tree *Generate_Random_Tree_From_Scratch(int n_otu, int rooted)
+       }
+     n_available++;
+ 
+-    new_n  = Rand_Int(0, n_available - 1);
++    new_n  = Rand_Int(rand, 0, n_available - 1);
+     curr_n = tree->a_nodes[available_nodes[new_n]];
+ 
+     n_connected += 2;
+@@ -8946,14 +8956,14 @@ void Print_Diversity_Header(FILE *fp, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Best_Of_NNI_And_SPR(t_tree *tree)
++void Best_Of_NNI_And_SPR(MTRand* rand, t_tree *tree)
+ {
+   PhyML_Fprintf(stderr, "Best of NNI and SPR option is deprecated. PhyML nows "
+                         "only relies on SPR moves");
+   assert(FALSE);
+ 
+   if (tree->mod->s_opt->random_input_tree)
+-    Global_Spr_Search(
++    Global_Spr_Search(rand,
+         tree); /* Don't do simultaneous NNIs if starting tree is random */
+   else
+   {
+@@ -9009,7 +9019,7 @@ void Best_Of_NNI_And_SPR(t_tree *tree)
+     }
+ 
+     // ****** Perform SPR ******
+-    Global_Spr_Search(tree);
++    Global_Spr_Search(rand,tree);
+     spr_lnL = tree->c_lnL;
+ 
+     // Did SPR perform better than NNI?
+@@ -9158,7 +9168,7 @@ t_tree *Dist_And_BioNJ(calign *cdata, t_mod *mod, option *io)
+   else
+   {
+     tree = Make_Tree_From_Scratch(cdata->n_otu, cdata);
+-    Random_Tree(tree);
++    Random_Tree(&io->rand, tree);
+     tree->mat = NULL;
+   }
+ 
+@@ -9206,7 +9216,7 @@ char *Bootstrap_From_String(char *s_tree, calign *cdata, t_mod *mod, option *io)
+   tree->io->print_support_val = YES;
+ 
+   Connect_CSeqs_To_Nodes(cdata, io, tree);
+-  if (tree->mod->s_opt->random_input_tree) Random_Tree(tree);
++  if (tree->mod->s_opt->random_input_tree) Random_Tree(&io->rand, tree);
+   Make_Tree_For_Pars(tree);
+   Make_Tree_For_Lk(tree);
+   Unscale_Br_Len_Multiplier_Tree(tree);
+@@ -9219,9 +9229,9 @@ char *Bootstrap_From_String(char *s_tree, calign *cdata, t_mod *mod, option *io)
+   Lk(NULL, tree);
+ 
+ #ifdef MPI
+-  Bootstrap_MPI(tree);
++  Bootstrap_MPI(&io->rand, tree);
+ #else
+-  Bootstrap(tree);
++  Bootstrap(&io->rand, tree);
+ #endif
+ 
+   Free(s_tree);
+@@ -9266,7 +9276,7 @@ char *aLRT_From_String(char *s_tree, calign *cdata, t_mod *mod, option *io)
+   tree->data = cdata;
+ 
+   Connect_CSeqs_To_Nodes(cdata, io, tree);
+-  if (tree->mod->s_opt->random_input_tree) Random_Tree(tree);
++  if (tree->mod->s_opt->random_input_tree) Random_Tree(&io->rand, tree);
+   Make_Tree_For_Pars(tree);
+   Make_Tree_For_Lk(tree);
+ 
+@@ -9284,7 +9294,7 @@ char *aLRT_From_String(char *s_tree, calign *cdata, t_mod *mod, option *io)
+   Set_Both_Sides(YES, tree);
+   Lk(NULL, tree);
+ 
+-  aLRT(tree);
++  aLRT(&io->rand, tree);
+ 
+   Free(s_tree);
+ 
+@@ -11746,14 +11756,14 @@ void Check_Br_Lens(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Build_Distrib_Number_Of_Diff_States_Under_Model(t_tree *tree)
++void Build_Distrib_Number_Of_Diff_States_Under_Model(MTRand* rand, t_tree *tree)
+ {
+   calign *orig_data;
+   t_mod  *orig_mod;
+   int     iter, n_iter_tot, i, j;
+   phydbl *n_diff_states_all_l, *n_diff_states_all_r;
+ 
+-  Calculate_Number_Of_Diff_States(tree);
++  Calculate_Number_Of_Diff_States(rand, tree);
+ 
+   PhyML_Printf("\n TRUE     edge    side    states val");
+   For(i, 2 * tree->n_otu - 3)
+@@ -11790,9 +11800,9 @@ void Build_Distrib_Number_Of_Diff_States_Under_Model(t_tree *tree)
+ 
+   do
+   {
+-    EVOLVE_Seq(tree->data, tree->mod, NULL, tree);
++    EVOLVE_Seq(rand,tree->data, tree->mod, NULL, tree);
+ 
+-    Calculate_Number_Of_Diff_States(tree);
++    Calculate_Number_Of_Diff_States(rand, tree);
+ 
+     for (i = 0; i < 2 * tree->n_otu - 3; ++i)
+     {
+@@ -11865,12 +11875,14 @@ void Build_Distrib_Number_Of_Diff_States_Under_Model(t_tree *tree)
+ /* Calculate the number of sites at which 1,...,n states (n: 4 or 20) */
+ /* are observed, for every subtree */
+ 
+-void Calculate_Number_Of_Diff_States(t_tree *tree)
++void Calculate_Number_Of_Diff_States(MTRand* rand, t_tree *tree)
+ {
+   Init_Ui_Tips(tree);
+-  Calculate_Number_Of_Diff_States_Post(tree->a_nodes[0], tree->a_nodes[0]->v[0],
++  Calculate_Number_Of_Diff_States_Post(rand,
++                                       tree->a_nodes[0], tree->a_nodes[0]->v[0],
+                                        tree->a_nodes[0]->b[0], tree);
+-  Calculate_Number_Of_Diff_States_Pre(tree->a_nodes[0], tree->a_nodes[0]->v[0],
++  Calculate_Number_Of_Diff_States_Pre(rand,
++                                      tree->a_nodes[0], tree->a_nodes[0]->v[0],
+                                       tree->a_nodes[0]->b[0], tree);
+ 
+   /* int i; */
+@@ -11895,7 +11907,8 @@ void Calculate_Number_Of_Diff_States(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Calculate_Number_Of_Diff_States_Post(t_node *a, t_node *d, t_edge *b,
++void Calculate_Number_Of_Diff_States_Post(MTRand* rand,
++                                          t_node *a, t_node *d, t_edge *b,
+                                           t_tree *tree)
+ {
+   if (d->tax)
+@@ -11906,16 +11919,17 @@ void Calculate_Number_Of_Diff_States_Post(t_node *a, t_node *d, t_edge *b,
+ 
+     for (i = 0; i < 3; i++)
+       if (d->v[i] != a)
+-        Calculate_Number_Of_Diff_States_Post(d, d->v[i], d->b[i], tree);
++        Calculate_Number_Of_Diff_States_Post(rand, d, d->v[i], d->b[i], tree);
+ 
+-    Calculate_Number_Of_Diff_States_Core(a, d, b, tree);
++    Calculate_Number_Of_Diff_States_Core(rand, a, d, b, tree);
+   }
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Calculate_Number_Of_Diff_States_Pre(t_node *a, t_node *d, t_edge *b,
++void Calculate_Number_Of_Diff_States_Pre(MTRand* rand,
++                                         t_node *a, t_node *d, t_edge *b,
+                                          t_tree *tree)
+ {
+ 
+@@ -11928,8 +11942,8 @@ void Calculate_Number_Of_Diff_States_Pre(t_node *a, t_node *d, t_edge *b,
+     for (i = 0; i < 3; i++)
+       if (d->v[i] != a)
+       {
+-        Calculate_Number_Of_Diff_States_Core(d->v[i], d, d->b[i], tree);
+-        Calculate_Number_Of_Diff_States_Pre(d, d->v[i], d->b[i], tree);
++        Calculate_Number_Of_Diff_States_Core(rand, d->v[i], d, d->b[i], tree);
++        Calculate_Number_Of_Diff_States_Pre(rand, d, d->v[i], d->b[i], tree);
+       }
+   }
+ }
+@@ -11937,7 +11951,8 @@ void Calculate_Number_Of_Diff_States_Pre(t_node *a, t_node *d, t_edge *b,
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Calculate_Number_Of_Diff_States_Core(t_node *a, t_node *d, t_edge *b,
++void Calculate_Number_Of_Diff_States_Core(MTRand* rand,
++                                          t_node *a, t_node *d, t_edge *b,
+                                           t_tree *tree)
+ {
+   int    *ui, *ui_v1, *ui_v2;
+@@ -11995,12 +12010,12 @@ void Calculate_Number_Of_Diff_States_Core(t_node *a, t_node *d, t_edge *b,
+       {
+         int    val = ui_v1[site];
+         int    pos, iter;
+-        phydbl u = Uni();
++        phydbl u = Uni(rand);
+ 
+         iter = 0;
+         do
+         {
+-          pos = Rand_Int(0, tree->mod->ns - 1);
++          pos = Rand_Int(rand, 0, tree->mod->ns - 1);
+           if (((val >> pos) & 1) && (u > 1. / sum)) break;
+         } while (iter++ < 1000);
+ 
+@@ -12021,12 +12036,12 @@ void Calculate_Number_Of_Diff_States_Core(t_node *a, t_node *d, t_edge *b,
+       {
+         int    val = ui_v2[site];
+         int    pos, iter;
+-        phydbl u = Uni();
++        phydbl u = Uni(rand);
+ 
+         iter = 0;
+         do
+         {
+-          pos = Rand_Int(0, tree->mod->ns - 1);
++          pos = Rand_Int(rand, 0, tree->mod->ns - 1);
+           if (((val >> pos) & 1) && (u > 1. / sum)) break;
+         } while (iter++ < 1000);
+ 
+@@ -12054,13 +12069,14 @@ void Calculate_Number_Of_Diff_States_Core(t_node *a, t_node *d, t_edge *b,
+ //////////////////////////////////////////////////////////////
+ /* Returns the number of distinct states observed at a particular site */
+ 
+-int Number_Of_Diff_States_One_Site(int site, t_tree *tree)
++int Number_Of_Diff_States_One_Site(MTRand* rand, int site, t_tree *tree)
+ {
+   int n_states;
+ 
+   Update_Dirs(tree);
+ 
+-  Number_Of_Diff_States_One_Site_Post(tree->a_nodes[0], tree->a_nodes[0]->v[0],
++  Number_Of_Diff_States_One_Site_Post(rand,
++                                      tree->a_nodes[0], tree->a_nodes[0]->v[0],
+                                       tree->a_nodes[0]->b[0], site, tree);
+ 
+   n_states = Sum_Bits(tree->a_nodes[0]->b[0]->ui_r[site] |
+@@ -12073,7 +12089,8 @@ int Number_Of_Diff_States_One_Site(int site, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Number_Of_Diff_States_One_Site_Post(t_node *a, t_node *d, t_edge *b,
++void Number_Of_Diff_States_One_Site_Post(MTRand* rand,
++                                         t_node *a, t_node *d, t_edge *b,
+                                          int site, t_tree *tree)
+ {
+   if (d->tax)
+@@ -12084,16 +12101,17 @@ void Number_Of_Diff_States_One_Site_Post(t_node *a, t_node *d, t_edge *b,
+ 
+     for (i = 0; i < 3; i++)
+       if (d->v[i] != a && !(a == tree->n_root && d->b[i] == tree->e_root))
+-        Number_Of_Diff_States_One_Site_Post(d, d->v[i], d->b[i], site, tree);
++        Number_Of_Diff_States_One_Site_Post(rand, d, d->v[i], d->b[i], site, tree);
+ 
+-    Number_Of_Diff_States_One_Site_Core(a, d, b, site, tree);
++    Number_Of_Diff_States_One_Site_Core(rand, a, d, b, site, tree);
+   }
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-int Number_Of_Diff_States_One_Site_Core(t_node *a, t_node *d, t_edge *b,
++int Number_Of_Diff_States_One_Site_Core(MTRand* rand,
++                                        t_node *a, t_node *d, t_edge *b,
+                                         int site, t_tree *tree)
+ {
+   int    *ui, *ui_v1, *ui_v2;
+@@ -12144,13 +12162,13 @@ int Number_Of_Diff_States_One_Site_Core(t_node *a, t_node *d, t_edge *b,
+     {
+       int    val = ui_v1[site];
+       int    pos, iter;
+-      phydbl u = Uni();
++      phydbl u = Uni(rand);
+ 
+       // Select a state uniformly at random
+       iter = 0;
+       do
+       {
+-        pos = Rand_Int(0, tree->mod->ns - 1);
++        pos = Rand_Int(rand, 0, tree->mod->ns - 1);
+         if (((val >> pos) & 1) && (u > 1. / sum)) break;
+       } while (iter++ < 1000);
+ 
+@@ -12170,12 +12188,12 @@ int Number_Of_Diff_States_One_Site_Core(t_node *a, t_node *d, t_edge *b,
+     {
+       int    val = ui_v2[site];
+       int    pos, iter;
+-      phydbl u = Uni();
++      phydbl u = Uni(rand);
+ 
+       iter = 0;
+       do
+       {
+-        pos = Rand_Int(0, tree->mod->ns - 1);
++        pos = Rand_Int(rand, 0, tree->mod->ns - 1);
+         if (((val >> pos) & 1) && (u > 1. / sum)) break;
+       } while (iter++ < 1000);
+ 
+@@ -13123,7 +13141,8 @@ void Replace_Short_With_Long_Tax_Names(t_tree *tree, option *io)
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-void Random_Walk_Along_Tree_On_Radius(t_node *a, t_node *d, t_edge *b,
++void Random_Walk_Along_Tree_On_Radius(MTRand* rand,
++                                      t_node *a, t_node *d, t_edge *b,
+                                       phydbl *radius, t_edge **target_edge,
+                                       t_node **target_nd, phydbl *target_time,
+                                       t_tree *tree)
+@@ -13253,7 +13272,7 @@ void Random_Walk_Along_Tree_On_Radius(t_node *a, t_node *d, t_edge *b,
+       }
+       else
+       {
+-        u = Uni();
++        u = Uni(rand);
+         if (u < .5)
+         {
+           // target falls on edge below root leading to node d
+@@ -13302,13 +13321,13 @@ void Random_Walk_Along_Tree_On_Radius(t_node *a, t_node *d, t_edge *b,
+           dir2 = i;
+       }
+ 
+-    u = Uni();
++    u = Uni(rand);
+     if (u < .5)
+-      Random_Walk_Along_Tree_On_Radius(d, d->v[dir1], d->b[dir1], radius,
++      Random_Walk_Along_Tree_On_Radius(rand, d, d->v[dir1], d->b[dir1], radius,
+                                        target_edge, target_nd, target_time,
+                                        tree);
+     else
+-      Random_Walk_Along_Tree_On_Radius(d, d->v[dir2], d->b[dir2], radius,
++      Random_Walk_Along_Tree_On_Radius(rand, d, d->v[dir2], d->b[dir2], radius,
+                                        target_edge, target_nd, target_time,
+                                        tree);
+   }
+@@ -13862,7 +13881,7 @@ char *Bit_To_Character_String(int *bit, int ns)
+ /*////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////*/
+ 
+-void Shuffle_Sites(const phydbl prop, align **data, const int n_otu)
++void Shuffle_Sites(MTRand* rand, const phydbl prop, align **data, const int n_otu)
+ {
+   unsigned int i, j, rand_otu;
+   phydbl       u;
+@@ -13870,12 +13889,12 @@ void Shuffle_Sites(const phydbl prop, align **data, const int n_otu)
+ 
+   for (j = 0; j < data[0]->len; ++j)
+   {
+-    u = Uni();
++    u = Uni(rand);
+     if (u < prop)
+     {
+       for (i = 0; i < n_otu; ++i)
+       {
+-        rand_otu = Rand_Int(0, n_otu - 1);
++        rand_otu = Rand_Int(rand, 0, n_otu - 1);
+ 
+         c                        = data[i]->state[j];
+         data[i]->state[j]        = data[rand_otu]->state[j];

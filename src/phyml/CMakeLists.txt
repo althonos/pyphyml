@@ -106,8 +106,10 @@ set(PHYML_SOURCES
     draw.h
     rates.c 
     rates.h
-    mcmc.c 
+    # mcmc.c 
     mcmc.h
+    random.c
+    random.h
     stats.c 
     stats.h
     mg.c 
@@ -149,7 +151,20 @@ set(PHYML_SOURCES
 
 foreach(_file IN ITEMS ${PHYML_SOURCES})
     cmake_path(GET _file FILENAME _name)
-    if(EXISTS ${PROJECT_SOURCE_DIR}/patches/${_name}.patch)
+    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/vendor/phyml/src/${_file})
+        add_custom_command(
+            OUTPUT
+                ${_file}
+            COMMENT
+                "Patching ${_file}"
+            COMMAND
+                ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/src/scripts/apply_patch.py
+                    --patch ${PROJECT_SOURCE_DIR}/patches/${_name}.patch
+                    --output ${CMAKE_CURRENT_BINARY_DIR}/${_file}
+            DEPENDS
+                ${PROJECT_SOURCE_DIR}/patches/${_name}.patch
+        )
+    elseif(EXISTS ${PROJECT_SOURCE_DIR}/patches/${_name}.patch)
         add_custom_command(
             OUTPUT
                 ${_file}

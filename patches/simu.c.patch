@@ -1,0 +1,106 @@
+diff --git a/src/simu.c b/src/simu.c
+index 0e9d031..eb5827b 100644
+--- a/src/simu.c
++++ b/src/simu.c
+@@ -27,7 +27,7 @@ void Simu_Loop(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-int Simu(t_tree *tree, int n_step_max, phydbl delta_lnL, phydbl init_T, phydbl delta_T, int min_n_edges_traversed)
++int Simu(MTRand* rand, t_tree *tree, int n_step_max, phydbl delta_lnL, phydbl init_T, phydbl delta_T, int min_n_edges_traversed)
+ {
+   phydbl old_loglk,delta;
+   unsigned int n_round;
+@@ -40,14 +40,15 @@ int Simu(t_tree *tree, int n_step_max, phydbl delta_lnL, phydbl init_T, phydbl d
+   tree->annealing_temp = init_T;
+   do
+     {
+-      for(int i=0;i<2*tree->n_otu-3;++i) tree->a_edges[i]->l->v *= Rgamma((phydbl)(0.2*n_round+1),(phydbl)(1./(0.2*n_round+1)));
++      for(int i=0;i<2*tree->n_otu-3;++i) tree->a_edges[i]->l->v *= Rgamma(rand,(phydbl)(0.2*n_round+1),(phydbl)(1./(0.2*n_round+1)));
+       old_loglk = tree->c_lnL;
+       Set_Both_Sides(NO,tree);
+-      tree->tip_root = Rand_Int(0,tree->n_otu-1);
++      tree->tip_root = Rand_Int(rand,0,tree->n_otu-1);
+       Lk(NULL,tree);
+       tree->n_edges_traversed = 0;
+       tree->fully_nni_opt = YES;
+-      NNI_Traversal(tree->a_nodes[tree->tip_root],
++      NNI_Traversal(rand,
++                    tree->a_nodes[tree->tip_root],
+                     tree->a_nodes[tree->tip_root]->v[0],
+                     NULL,
+                     tree->a_nodes[tree->tip_root]->b[0],
+@@ -811,7 +812,7 @@ void Check_NNI_Scores_Around(t_node *a, t_node *d, t_edge *b, phydbl *best_score
+      / \
+     v1 v2   
+ */
+-void NNI_Traversal(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree *tree)
++void NNI_Traversal(MTRand* rand, t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree *tree)
+ {
+   int i,dir1, dir2;
+ 
+@@ -829,14 +830,14 @@ void NNI_Traversal(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_
+         if(d->v[i] != a)
+           {
+             Update_Partial_Lk(tree,d->b[i],d);
+-            NNI_Traversal(d,d->v[i],a,d->b[i],opt_edges,tree);
++            NNI_Traversal(rand,d,d->v[i],a,d->b[i],opt_edges,tree);
+           }
+       Update_Partial_Lk(tree,b,d);
+     }
+   else
+     {
+       tree->n_edges_traversed++;
+-      NNI_Core(a,d,v,b,opt_edges,tree);
++      NNI_Core(rand,a,d,v,b,opt_edges,tree);
+ 
+       dir1 = dir2 = -1;
+       for(i=0;i<3;++i)
+@@ -847,9 +848,9 @@ void NNI_Traversal(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_
+           }
+ 
+       Update_Partial_Lk(tree,d->b[dir1],d);
+-      NNI_Traversal(d,d->v[dir1],a,d->b[dir1],opt_edges,tree);
++      NNI_Traversal(rand,d,d->v[dir1],a,d->b[dir1],opt_edges,tree);
+       Update_Partial_Lk(tree,d->b[dir2],d);
+-      NNI_Traversal(d,d->v[dir2],a,d->b[dir2],opt_edges,tree);
++      NNI_Traversal(rand,d,d->v[dir2],a,d->b[dir2],opt_edges,tree);
+ 
+       Update_Partial_Lk(tree,b,d);
+     }
+@@ -859,7 +860,7 @@ void NNI_Traversal(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_
+ //////////////////////////////////////////////////////////////
+ 
+ 
+-void NNI_Core(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree *tree)
++void NNI_Core(MTRand* rand, t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree *tree)
+ {
+   phydbl lk0,lk1,lk2;
+   phydbl rnd;
+@@ -886,7 +887,7 @@ void NNI_Core(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree
+   assert(v2 != NULL);
+   
+   dum = NULL;
+-  rnd = Uni();
++  rnd = Uni(rand);
+   if(rnd < .5)
+     {
+       dum = v1;
+@@ -955,7 +956,7 @@ void NNI_Core(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree
+ 
+   p_accept = exp((lk1-lk0)/(tree->annealing_temp+1.E-6));
+   if(Are_Equal(lk1,lk0,tree->mod->s_opt->min_diff_lk_local) && Are_Equal(tree->annealing_temp,0.0,1.E-3)) p_accept = .0;
+-  rnd = Uni();
++  rnd = Uni(rand);
+   
+   
+   if(rnd < p_accept && lk2 < lk1)
+@@ -971,7 +972,7 @@ void NNI_Core(t_node *a, t_node *d, t_node *v, t_edge *b, int opt_edges, t_tree
+     {
+       p_accept = exp((lk2-lk0)/(tree->annealing_temp+1.E-6));
+       if(Are_Equal(lk2,lk0,tree->mod->s_opt->min_diff_lk_local) && Are_Equal(tree->annealing_temp,0.0,1.E-3)) p_accept = .0;
+-      rnd = Uni();
++      rnd = Uni(rand);
+       if(rnd < p_accept)
+         {
+           Swap(v2,d,a,u,tree);

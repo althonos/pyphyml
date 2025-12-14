@@ -1,5 +1,5 @@
 diff --git a/src/init.c b/src/init.c
-index 468e846..4ffcb42 100644
+index 468e846..dee5a1a 100644
 --- a/src/init.c
 +++ b/src/init.c
 @@ -11,6 +11,11 @@ the GNU public licence. See http://www.opensource.org for details.
@@ -14,3 +14,71 @@ index 468e846..4ffcb42 100644
  #ifdef BEAGLE
  #include "beagle_utils.h"
  #endif
+@@ -6050,27 +6055,27 @@ int Init_Qmat_AB(phydbl *daa, phydbl *pi)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void GEO_Init_Coord(t_geo_coord *t, int n_dim)
++void GEO_Init_Coord(MTRand* rand, t_geo_coord *t, int n_dim)
+ {
+   t->dim = n_dim;
+-  Random_String(t->id, 3);
++  Random_String(rand, t->id, 3);
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void GEO_Init_Veloc(t_geo_veloc *t, int n_dim)
++void GEO_Init_Veloc(MTRand* rand, t_geo_veloc *t, int n_dim)
+ {
+   t->dim = n_dim;
+-  Random_String(t->id, 3);
++  Random_String(rand, t->id, 3);
+ 
+-  for (int i = 0; i < n_dim; ++i) t->deriv[i] = Uni() * 2. - 1.;
++  for (int i = 0; i < n_dim; ++i) t->deriv[i] = Uni(rand) * 2. - 1.;
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void PHYREX_Init_Disk_Event(t_dsk *t, int n_dim, t_phyrex_mod *mmod)
++void PHYREX_Init_Disk_Event(MTRand* rand, t_dsk *t, int n_dim, t_phyrex_mod *mmod)
+ {
+   t->prev      = NULL;
+   t->next      = NULL;
+@@ -6080,8 +6085,8 @@ void PHYREX_Init_Disk_Event(t_dsk *t, int n_dim, t_phyrex_mod *mmod)
+   t->cum_glnL  = 0.0;
+   t->cum_tlnL  = 0.0;
+ 
+-  Random_String(t->id, 3);
+-  GEO_Init_Coord(t->centr, n_dim);
++  Random_String(rand, t->id, 3);
++  GEO_Init_Coord(rand, t->centr, n_dim);
+ 
+   if (mmod != NULL) t->mmod = mmod;
+ }
+@@ -6210,7 +6215,7 @@ void PHYREX_Set_Default_Migrep_Mod(int n_otu, t_phyrex_mod *t)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void PHYREX_Init_Lindisk_Node(t_ldsk *t, t_dsk *disk, int n_dim)
++void PHYREX_Init_Lindisk_Node(MTRand* rand, t_ldsk *t, t_dsk *disk, int n_dim)
+ {
+   t->disk = disk;
+   /* disk->ldsk = t; */
+@@ -6223,10 +6228,10 @@ void PHYREX_Init_Lindisk_Node(t_ldsk *t, t_dsk *disk, int n_dim)
+   t->rr     = 1.0;
+   t->sigsq  = 1.0;
+ 
+-  GEO_Init_Coord(t->coord, n_dim);
+-  GEO_Init_Coord(t->cpy_coord, n_dim);
++  GEO_Init_Coord(rand,t->coord, n_dim);
++  GEO_Init_Coord(rand,t->cpy_coord, n_dim);
+ 
+-  GEO_Init_Veloc(t->veloc, n_dim);
++  GEO_Init_Veloc(rand,t->veloc, n_dim);
+ }
+ 
+ //////////////////////////////////////////////////////////////

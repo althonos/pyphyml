@@ -1,0 +1,84 @@
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 77ff061..0376770 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -77,6 +77,7 @@ times.c times.h\
+ draw.c draw.h\
+ rates.c rates.h\
+ mcmc.c mcmc.h\
++random.c random.h\
+ stats.c stats.h\
+ mg.c mg.h\
+ io.c io.h\
+@@ -144,6 +145,7 @@ interface.c  interface.h\
+ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
++random.c random.h\
+ stats.c stats.h\
+ mg.c mg.h\
+ io.c io.h\
+@@ -181,6 +183,7 @@ interface.c  interface.h\
+ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
++random.c random.h\
+ stats.c stats.h\
+ io.c io.h\
+ make.c make.h\
+@@ -219,6 +222,7 @@ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
+ tbe.c tbe.h \
++random.c random.h\
+ stats.c stats.h\
+ rates.c rates.h\
+ mcmc.c mcmc.h\
+@@ -254,6 +258,7 @@ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
+ tbe.c tbe.h \
++random.c random.h\
+ stats.c stats.h\
+ rates.c rates.h\
+ mcmc.c mcmc.h\
+@@ -298,6 +303,7 @@ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
+ tbe.c tbe.h \
++random.c random.h\
+ stats.c stats.h\
+ rates.c rates.h\
+ mcmc.c mcmc.h\
+@@ -333,6 +339,7 @@ interface.c  interface.h\
+ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
++random.c random.h\
+ stats.c stats.h\
+ rates.c rates.h\
+ times.c times.h\
+@@ -379,6 +386,7 @@ interface.c  interface.h\
+ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
++random.c random.h\
+ stats.c stats.h\
+ rates.c rates.h\
+ times.c times.h\
+@@ -422,6 +430,7 @@ interface.c  interface.h\
+ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
++random.c random.h\
+ stats.c stats.h\
+ rates.c rates.h\
+ mcmc.c mcmc.h\
+@@ -453,6 +462,7 @@ interface.c  interface.h\
+ cl.c  cl.h\
+ spr.c spr.h\
+ draw.c  draw.h\
++random.c random.h\
+ stats.c stats.h\
+ io.c io.h\
+ make.c make.h\

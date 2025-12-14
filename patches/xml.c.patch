@@ -1,0 +1,38 @@
+diff --git a/src/xml.c b/src/xml.c
+index 3d50251..d86321a 100644
+--- a/src/xml.c
++++ b/src/xml.c
+@@ -1213,7 +1213,8 @@ t_tree *XML_Process_Base(char *xml_filename)
+   if (!io->mod->s_opt->random_input_tree) io->mod->s_opt->n_rand_starts = 1;
+ 
+   int r_seed = (io->r_seed < 0) ? (time(NULL)) : (io->r_seed);
+-  srand(r_seed);
++  // srand(r_seed);
++  MTRand_Seed(&io->rand, r_seed);
+   io->r_seed = r_seed;
+ 
+   Free(component);
+@@ -2412,7 +2413,7 @@ char **XML_Read_Clade(xml_node *xnd_clade, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void XML_Read_Calibration(xml_node *xroot, t_tree *tree)
++void XML_Read_Calibration(MTRand* rand, xml_node *xroot, t_tree *tree)
+ {
+   xml_node *xnd_clade, *xnd_cal, *xnd, *xnd_dum;
+   phydbl    low, up, alpha_proba_dbl, t, t_ref;
+@@ -2628,12 +2629,12 @@ void XML_Read_Calibration(xml_node *xroot, t_tree *tree)
+       {
+         if (t_ref < -.5)
+         {
+-          t_ref = Uni() * (cal->upper - cal->lower) + cal->lower;
++          t_ref = Uni(rand) * (cal->upper - cal->lower) + cal->lower;
+           t_ref = fabs(t_ref);
+         }
+         else
+         {
+-          t = Uni() * (cal->upper - cal->lower) + cal->lower;
++          t = Uni(rand) * (cal->upper - cal->lower) + cal->lower;
+           t = fabs(t);
+ 
+           if (Are_Equal(t, t_ref, 1.E-10) == NO)

@@ -1,3 +1,4 @@
+from .random cimport MTRand
 from .utilities cimport (
     option as t_option,
     t_tree,
@@ -19,7 +20,7 @@ cdef extern from "spr.h" nogil:
     # void PostOrder_w      (t_tree *tree, t_node *v, t_edge *v_e, t_node *w, t_edge *e);
 
     # void Speed_Spr(t_tree *tree, phydbl prop_spr, int max_cycles, phydbl delta_lnL);
-    void Global_Spr_Search(t_tree *tree)
+    void Global_Spr_Search(MTRand* rand, t_tree *tree)
     void Make_Spr_List(t_tree *tree)
     # void Init_One_Spr(t_spr *a_spr);
     # t_spr *Make_One_Spr(t_tree *tree);

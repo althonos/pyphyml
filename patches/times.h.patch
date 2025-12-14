@@ -1,0 +1,37 @@
+diff --git a/src/times.h b/src/times.h
+index 80132cd..f5b125c 100644
+--- a/src/times.h
++++ b/src/times.h
+@@ -68,18 +68,18 @@ phydbl TIMES_Lk_Yule_Order(t_tree *tree);
+ void TIMES_Record_Prior_Times(t_tree *tree);
+ void TIMES_Reset_Prior_Times(t_tree *tree);
+ phydbl TIMES_Lk_Yule_Order_Root_Cond(t_tree *tree);
+-void TIMES_Connect_List_Of_Taxa(t_node **tax_list, int list_size, phydbl t_mrca, phydbl *times, int *nd_num, t_tree *mixt_tree);
+-void TIMES_Randomize_Tree_With_Time_Constraints(t_cal *cal_list, t_tree *tree);
++void TIMES_Connect_List_Of_Taxa(MTRand* rand, t_node **tax_list, int list_size, phydbl t_mrca, phydbl *times, int *nd_num, t_tree *mixt_tree);
++void TIMES_Randomize_Tree_With_Time_Constraints(MTRand* rand, t_cal *cal_list, t_tree *tree);
+ phydbl TIMES_Lk_Birth_Death(int verbose, t_tree *tree);
+ int TIMES_Check_Node_Height_Ordering(t_tree *tree);
+ int TIMES_Check_Node_Height_Ordering_Post(t_node *a, t_node *d, t_tree *tree);
+ phydbl TIMES_Lk_Birth_Death_One_Node(phydbl t, phydbl min, phydbl max, t_tree *tree);
+ phydbl TIMES_Least_Square_Criterion(t_tree *tree);
+ void TIMES_Pre_Least_Square_Criterion(t_node *a, t_node *d, t_edge *b, phydbl *score, t_tree *tree);
+-void TIMES_Post_Randomize_Node_Ages(t_node *a, t_node *d, t_tree *tree);
+-void TIMES_Randomize_Node_Ages(t_tree *tree);
++void TIMES_Post_Randomize_Node_Ages(MTRand* rand, t_node *a, t_node *d, t_tree *tree);
++void TIMES_Randomize_Node_Ages(MTRand* rand, t_tree *tree);
+ int TIMES_Calibrations_Apply_To_Tips_Only(t_tree *tree);
+-void TIMES_Randomize_Tip_Times_Given_Calibrations(t_tree *tree);
++void TIMES_Randomize_Tip_Times_Given_Calibrations(MTRand* rand, t_tree *tree);
+ void TIMES_Time_To_Bl(t_tree *tree);
+ void TIMES_Time_To_Bl_Pre(t_node *a, t_node *d, t_edge *b, t_tree *tree);
+ void TIMES_Bl_To_Times_Post(t_node *a, t_node *d, t_edge *b, t_tree *tree);
+@@ -88,7 +88,7 @@ phydbl TIMES_Tree_Length(t_tree *tree);
+ void TIMES_Copy_Time_Struct(t_time *from, t_time *to, int n_otu);
+ phydbl TIMES_Lk_Coalescent(t_tree *tree);
+ phydbl TIMES_Wrap_Lk_Coalescent(t_edge *b, t_tree *tree, supert_tree *stree);
+-void TIMES_Simulate_Coalescent(t_tree *tree);
++void TIMES_Simulate_Coalescent(MTRand* rand, t_tree *tree);
+ phydbl TIMES_Lk_Coalescent_Range(t_dsk *young, t_dsk *old, t_tree *tree);
+ phydbl TIMES_Lk_SLFV(t_tree *tree);
+ phydbl TIMES_Lk_SLFV_Range(t_dsk *young, t_dsk *old, t_tree *tree);

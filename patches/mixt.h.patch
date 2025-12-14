@@ -1,0 +1,65 @@
+diff --git a/src/mixt.h b/src/mixt.h
+index 90da745..19955f8 100644
+--- a/src/mixt.h
++++ b/src/mixt.h
+@@ -51,7 +51,7 @@ void MIXT_Check_Single_Edge_Lens(t_tree *mixt_tree);
+ void MIXT_Update_Eigen(t_mod *mixt_mod);
+ int MIXT_Pars(t_edge *mixt_b, t_tree *mixt_tree);
+ void MIXT_Set_Pars_Thresh(t_tree *mixt_tree);
+-void MIXT_Bootstrap(char *best_tree, xml_node *root);
++void MIXT_Bootstrap(MTRand* rand, char *best_tree, xml_node *root);
+ void MIXT_Chain_All(t_tree *mixt_tree);
+ void MIXT_Chain_String(t_string *curr, t_string *next);
+ void MIXT_Chain_Scalar_Dbl(scalar_dbl *curr, scalar_dbl *next);
+@@ -72,14 +72,14 @@ void MIXT_Set_Br_Len_Var(t_edge *mixt_b, t_tree *mixt_tree);
+ void MIXT_Optimize_Br_Len_Multiplier(t_tree *mixt_tree);
+ void MIXT_Update_Br_Len_Multipliers(t_mod *mod);
+ void MIXT_Init_Model(t_mod *mod);
+-t_tree *MIXT_Starting_Tree(t_tree *mixt_tree);
++t_tree *MIXT_Starting_Tree(MTRand* rand, t_tree *mixt_tree);
+ void MIXT_Connect_Cseqs_To_Nodes(t_tree *mixt_tree);
+ void MIXT_Check_Edge_Lens_In_One_Elem(t_tree *mixt_tree);
+ void MIXT_Check_Edge_Lens_In_All_Elem(t_tree *mixt_tree);
+ void MIXT_Turn_Branches_OnOff_In_One_Elem(int onoff, t_tree *mixt_tree);
+ void MIXT_Turn_Branches_OnOff_In_All_Elem(int onoff, t_tree *mixt_tree);
+ void MIXT_Init_T_Beg(t_tree *mixt_tree);
+-void MIXT_Prepare_All(int num_rand_tree, t_tree *mixt_tree);
++void MIXT_Prepare_All(MTRand* rand, int num_rand_tree, t_tree *mixt_tree);
+ void MIXT_Init_T_End(t_tree *mixt_tree);
+ void MIXT_Add_Root(t_edge *mixt_b, t_tree *mixt_tree);
+ void MIXT_Check_Model_Validity(t_tree *mixt_tree);
+@@ -103,7 +103,7 @@ void MIXT_Restore_Partial_Scale(t_node *mixt_d, t_edge *mixt_b, t_tree *mixt_tre
+ void MIXT_Set_Both_Sides(int yesno, t_tree *mixt_tree);
+ void MIXT_Set_Br_Len(phydbl val, t_edge *mixt_b, t_tree *mixt_tree);
+ void MIXT_Multiply_Scalar_Dbl(scalar_dbl *this, phydbl scalar);
+-void MIXT_Sample_Ancestral_Seq(int mutmap, int fromprior, t_tree *mixt_tree);
++void MIXT_Sample_Ancestral_Seq(MTRand* rand, int mutmap, int fromprior, t_tree *mixt_tree);
+ void MIXT_Set_Update_Eigen(int yn, t_mod *mixt_mod);
+ void MIXT_Set_Ignore_Root(int yesno, t_tree *mixt_tree);
+ void MIXT_Make_Spr(t_tree *mixt_tree);
+@@ -116,21 +116,21 @@ void MIXT_Copy_Tree(t_tree *ori, t_tree *cpy);
+ void MIXT_Init_NNI_Score(phydbl val, t_edge *mixt_b, t_tree *mixt_tree);
+ t_tree *MIXT_Duplicate_Tree(t_tree *ori);
+ void MIXT_Set_Model_Parameters(t_mod *mixt_mod);
+-void MIXT_Print_Site_Lk(t_tree *mixt_tree, FILE *fp);
++void MIXT_Print_Site_Lk(MTRand* rand, t_tree *mixt_tree, FILE *fp);
+ void MIXT_Exchange_Nodes(t_node *a, t_node *d, t_node *w, t_node *v, t_tree *mixt_tree);
+ void MIXT_Chain_Models(t_tree *mixt_tree);
+ void MIXT_Repeat_Task(void (*Task_Function)(t_tree *tree),t_tree *mixt_tree);
+ void MIXT_Free_Tree(t_tree *mixt_tree);
+ void MIXT_RATES_Update_One_Edge_Length(t_edge *mixt_b, t_tree *mixt_tree);
+ void MIXT_Set_Scalar_Dbl(scalar_dbl *this, phydbl value);
+-void MIXT_Kfold_Pos_Cv(t_tree *mixt_tree);
+-void MIXT_Kfold_Col_Cv(t_tree *mixt_tree);
++void MIXT_Kfold_Pos_Cv(MTRand* rand, t_tree *mixt_tree);
++void MIXT_Kfold_Col_Cv(MTRand* rand, t_tree *mixt_tree);
+ void MIXT_Maxfold_Cv(t_tree *mixt_tree);
+ void MIXT_Init_Partial_Lk_Tips_Double(t_tree *mixt_tree);
+ void MIXT_Init_Partial_Lk_Tips_Double_One_Character(int node_idx, int curr_site,
+                                                     t_tree *mixt_tree);
+ void MIXT_Init_Partial_Lk_Tips_Double_One_Site(int site, t_tree *mixt_tree);
+-void MIXT_Cv(t_tree *mixt_tree);
++void MIXT_Cv(MTRand* rand, t_tree *mixt_tree);
+ calign *MIXT_Copy_Cseq(calign *ori, option *io, t_tree *mixt_tree);
+ 
+ #endif

@@ -1,5 +1,5 @@
 diff --git a/src/times.c b/src/times.c
-index fa78713..2395e24 100644
+index fa78713..9454da6 100644
 --- a/src/times.c
 +++ b/src/times.c
 @@ -14,6 +14,7 @@ the GNU public licence. See http://www.opensource.org for details.
@@ -10,3 +10,182 @@ index fa78713..2395e24 100644
  
  
  //////////////////////////////////////////////////////////////
+@@ -1059,7 +1060,7 @@ phydbl TIMES_Prior(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void TIMES_Simulate_Coalescent(t_tree *tree)
++void TIMES_Simulate_Coalescent(MTRand* rand, t_tree *tree)
+ {
+   t_node *n;
+   phydbl t,dt,Ne,*times,u,coal_rate,prob_coal;
+@@ -1096,17 +1097,18 @@ void TIMES_Simulate_Coalescent(t_tree *tree)
+       // Proba next coalescent event is in [T[n->num],T[n->rk_prev->num] 
+       prob_coal = 1. - exp(-coal_rate * fabs(times[n->num] - (n->rk_prev ? times[n->rk_prev->num] : -INFINITY)));
+             
+-      u = Uni();
++      u = Uni(rand);
+       
+       if(!(u > prob_coal))
+         {
+-          dt = Rexp_Trunc(coal_rate,
++          dt = Rexp_Trunc(rand,
++                          coal_rate,
+                           0.0,
+                           times[n->num] - (n->rk_prev ? times[n->rk_prev->num] : -INFINITY));
+                           
+           t = t - dt;
+                     
+-          permut = Permutate(n_lineages);
++          permut = Permutate(rand, n_lineages);
+ 
+           a = tree->a_nodes[available_idx];
+           v1 = Linked_List_Elem(permut[0],lineages);
+@@ -1829,7 +1831,7 @@ phydbl TIMES_Lk_Birth_Death(int verbose, t_tree *tree)
+ 
+ // Generate a subtree including all taxa in tax_list. The age of the root of that
+ // subtree is t_mrca. All nodes in the subtree are thus younger than that.
+-void TIMES_Connect_List_Of_Taxa(t_node **tax_list, int list_size, phydbl t_mrca, phydbl *times, int *nd_num, t_tree *mixt_tree)
++void TIMES_Connect_List_Of_Taxa(MTRand* rand, t_node **tax_list, int list_size, phydbl t_mrca, phydbl *times, int *nd_num, t_tree *mixt_tree)
+ {
+   phydbl t_upper_bound, t_lower_bound,up,lo;
+   int i,j,n_anc,*permut,rand_idx;
+@@ -1892,7 +1894,7 @@ void TIMES_Connect_List_Of_Taxa(t_node **tax_list, int list_size, phydbl t_mrca,
+         }
+       
+       // Connect randomly and set ages
+-      permut = Permutate(n_anc);
++      permut = Permutate(rand, n_anc);
+       /* permut = (int *)mCalloc(n_anc,sizeof(int)); */
+       /* for(i=0;i<n_anc;i++) permut[i] = i; */
+       i = 0;
+@@ -1906,7 +1908,7 @@ void TIMES_Connect_List_Of_Taxa(t_node **tax_list, int list_size, phydbl t_mrca,
+           new_mrca->v[0]         = NULL;
+           up                     = MIN(times[new_mrca->v[1]->num],times[new_mrca->v[2]->num]);
+           lo                     = up - (up - t_mrca)/5.;
+-          times[new_mrca->num]   = Uni()*(up - lo) + lo;
++          times[new_mrca->num]   = Uni(rand)*(up - lo) + lo;
+           
+           /* times[new_mrca->num]   = t_upper_bound - ((phydbl)(i+1.)/n_anc)*(t_upper_bound - t_lower_bound); */
+                     
+@@ -1927,7 +1929,7 @@ void TIMES_Connect_List_Of_Taxa(t_node **tax_list, int list_size, phydbl t_mrca,
+ 
+           anc[permut[i+1]] = new_mrca;
+ 
+-          rand_idx = Rand_Int(i+1,n_anc-1);
++          rand_idx = Rand_Int(rand,i+1,n_anc-1);
+           n                     = anc[permut[i+1]];
+           anc[permut[i+1]]      = anc[permut[rand_idx]];
+           anc[permut[rand_idx]] = n;
+@@ -1947,7 +1949,7 @@ void TIMES_Connect_List_Of_Taxa(t_node **tax_list, int list_size, phydbl t_mrca,
+ //////////////////////////////////////////////////////////////
+ // Generate a  random rooted tree with node ages fullfiling the
+ // time constraints defined in the list of calibration cal_list 
+-void TIMES_Randomize_Tree_With_Time_Constraints(t_cal *cal_list, t_tree *mixt_tree)
++void TIMES_Randomize_Tree_With_Time_Constraints(MTRand* rand, t_cal *cal_list, t_tree *mixt_tree)
+ {
+   t_node **tips,**nd_list;
+   phydbl *times,*cal_times,time_oldest_cal;
+@@ -2044,7 +2046,7 @@ void TIMES_Randomize_Tree_With_Time_Constraints(t_cal *cal_list, t_tree *mixt_tr
+           if(cal->is_primary == YES)
+             {
+               if(n_cal > 0) cal_times = (phydbl *)mRealloc(cal_times,n_cal+1,sizeof(phydbl));
+-              cal_times[n_cal] = Uni()*(cal->upper - cal->lower) + cal->lower;
++              cal_times[n_cal] = Uni(rand)*(cal->upper - cal->lower) + cal->lower;
+               if(cal_times[n_cal] < time_oldest_cal) time_oldest_cal = cal_times[n_cal];
+               n_cal++;
+             }
+@@ -2098,7 +2100,7 @@ void TIMES_Randomize_Tree_With_Time_Constraints(t_cal *cal_list, t_tree *mixt_tr
+           // Add some taxa that are not in any calibration set
+           if(n_no_cal_tip_num > 0)
+             {
+-              permut = Permutate(n_no_cal_tip_num);
++              permut = Permutate(rand, n_no_cal_tip_num);
+               j = 0;
+               do
+                 {
+@@ -2130,7 +2132,8 @@ void TIMES_Randomize_Tree_With_Time_Constraints(t_cal *cal_list, t_tree *mixt_tr
+                   assert(list_size <= mixt_tree->n_otu);
+                 }
+ 
+-              TIMES_Connect_List_Of_Taxa(nd_list, 
++              TIMES_Connect_List_Of_Taxa(rand,
++                                         nd_list, 
+                                          list_size,
+                                          cal_times[cal_ordering[i]], 
+                                          times, 
+@@ -2172,7 +2175,8 @@ void TIMES_Randomize_Tree_With_Time_Constraints(t_cal *cal_list, t_tree *mixt_tr
+       /* for(i=0;i<list_size;i++) printf("\n# To connect: %d lower: %f",nd_list[i]->num,time_oldest_cal); */
+ 
+       
+-      TIMES_Connect_List_Of_Taxa(nd_list,
++      TIMES_Connect_List_Of_Taxa(rand,
++                                 nd_list,
+                                  list_size,
+                                  10.*time_oldest_cal-1.E-3, // 1.E-3 required in case time_oldest_cal = 0.
+                                  times,
+@@ -2351,23 +2355,23 @@ void TIMES_Pre_Least_Square_Criterion(t_node *a, t_node *d, t_edge *b, phydbl *s
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void TIMES_Randomize_Node_Ages(t_tree *tree)
++void TIMES_Randomize_Node_Ages(MTRand* rand, t_tree *tree)
+ {
+   assert(tree->n_root);
+   assert(tree->rates);
+-  TIMES_Post_Randomize_Node_Ages(tree->n_root,tree->n_root->v[1],tree);
+-  TIMES_Post_Randomize_Node_Ages(tree->n_root,tree->n_root->v[2],tree);
++  TIMES_Post_Randomize_Node_Ages(rand,tree->n_root,tree->n_root->v[1],tree);
++  TIMES_Post_Randomize_Node_Ages(rand,tree->n_root,tree->n_root->v[2],tree);
+   tree->times->nd_t[tree->n_root->num] =
+     MIN(tree->times->nd_t[tree->n_root->v[1]->num],
+         tree->times->nd_t[tree->n_root->v[2]->num])
+-    - Rexp(1.);
++    - Rexp(rand, 1.);
+   /* PhyML_Printf("\n. RAND TIMES node %3d %15f",tree->n_root->num,tree->times->nd_t[tree->n_root->num]); */
+ }
+ 
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void TIMES_Post_Randomize_Node_Ages(t_node *a, t_node *d, t_tree *tree)
++void TIMES_Post_Randomize_Node_Ages(MTRand* rand, t_node *a, t_node *d, t_tree *tree)
+ {
+   if(d->tax == YES) return;
+   else
+@@ -2376,7 +2380,7 @@ void TIMES_Post_Randomize_Node_Ages(t_node *a, t_node *d, t_tree *tree)
+       
+       for(i=0;i<3;++i)
+         if(d->v[i] != a && !(a == tree->n_root && d->b[i] == tree->e_root))
+-          TIMES_Post_Randomize_Node_Ages(d,d->v[i],tree);
++          TIMES_Post_Randomize_Node_Ages(rand,d,d->v[i],tree);
+ 
+       dir1 = dir2 = -1;
+       for(i=0;i<3;++i)
+@@ -2389,7 +2393,7 @@ void TIMES_Post_Randomize_Node_Ages(t_node *a, t_node *d, t_tree *tree)
+       tree->times->nd_t[d->num] =
+         MIN(tree->times->nd_t[d->v[dir1]->num],
+             tree->times->nd_t[d->v[dir2]->num])
+-        - Rexp(1.);
++        - Rexp(rand, 1.);
+       /* PhyML_Printf("\n. RAND TIMES node %3d %15f",d->num,tree->times->nd_t[d->num]); */
+     }
+ }
+@@ -2425,7 +2429,7 @@ int TIMES_Calibrations_Apply_To_Tips_Only(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void TIMES_Randomize_Tip_Times_Given_Calibrations(t_tree *tree)
++void TIMES_Randomize_Tip_Times_Given_Calibrations(MTRand* rand, t_tree *tree)
+ {
+   
+   t_cal *cal;
+@@ -2443,7 +2447,7 @@ void TIMES_Randomize_Tip_Times_Given_Calibrations(t_tree *tree)
+           assert(clade);
+           assert(clade->target_nd);
+           assert(clade->target_nd->tax == YES);
+-          tree->times->nd_t[clade->target_nd->num] = Uni()*(cal->upper - cal->lower) + cal->lower;
++          tree->times->nd_t[clade->target_nd->num] = Uni(rand)*(cal->upper - cal->lower) + cal->lower;
+         }
+ 
+       cal = cal->next;

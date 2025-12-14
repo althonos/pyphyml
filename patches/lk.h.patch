@@ -1,0 +1,32 @@
+diff --git a/src/lk.h b/src/lk.h
+index d622c43..1611455 100644
+--- a/src/lk.h
++++ b/src/lk.h
+@@ -88,7 +88,7 @@ phydbl  Wrap_Lk_Linreg(t_edge *b, t_tree *tree, supert_tree *stree);
+ phydbl  Wrap_Lk_Times(t_edge *b, t_tree *tree, supert_tree *stree);
+ phydbl  Lk_LastFirst(t_tree *tree);
+ int     Check_Lk_At_Given_Edge(int verbose, t_tree *tree);
+-void    Stepwise_Add_Lk(t_tree *tree);
++void    Stepwise_Add_Lk(MTRand* rand, t_tree *tree);
+ void    Update_Eigen_Lr(t_edge *b, t_tree *tree);
+ phydbl  dLk(phydbl *l, t_edge *b, t_tree *tree);
+ phydbl  Lk_Core(int state, int ambiguity_check, phydbl *p_lk_left,
+@@ -101,8 +101,6 @@ phydbl Lk_Core_Eigen_Lr(phydbl *expl, phydbl *dot_prod, t_edge *b,
+ phydbl Invariant_Lk(int fact_sum_scale, int site, int *num_prec_issue,
+                     t_tree *tree);
+ void   Composite_Lk(t_tree *tree);
+-int    Sample_Ancestral_Seq_Core(t_node *a, t_node *d, t_edge *b, int r_cat,
+-                                 int site, t_tree *tree);
+ void   Default_Update_Partial_Lk(t_tree *tree, t_edge *b, t_node *d);
+ void Lk_dLk_Core_Eigen_Lr(phydbl *expl, phydbl *dot_prod, t_edge *b, phydbl *lk,
+                           phydbl *dlk, t_tree *tree);
+@@ -154,7 +152,8 @@ void Partial_Lk_Exex(const phydbl *Pij1, const int state1, const phydbl *Pij2,
+ void Partial_Lk_Exin(const phydbl *Pij1, const int state1, const phydbl *Pij2,
+                      const phydbl *plk2, const int ns, phydbl *plk0);
+ 
+-phydbl Sample_Ancestral_Trait_Contmod(t_node *a, t_node *d, phydbl t_za,
++phydbl Sample_Ancestral_Trait_Contmod(MTRand* rand, 
++                                      t_node *a, t_node *d, phydbl t_za,
+                                       phydbl t_zd, phydbl log_var_multiplier,
+                                       int print, t_tree *tree);
+ 

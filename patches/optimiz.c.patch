@@ -1,0 +1,126 @@
+diff --git a/src/optimiz.c b/src/optimiz.c
+index 61849f3..6059446 100644
+--- a/src/optimiz.c
++++ b/src/optimiz.c
+@@ -666,7 +666,7 @@ phydbl Br_Len_Opt(phydbl *l, t_edge *b, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Round_Optimize(t_tree *tree, int n_round_max)
++void Round_Optimize(MTRand* rand, t_tree *tree, int n_round_max)
+ {
+   int n_round,each,freq;
+   phydbl lk_old, lk_new;
+@@ -688,7 +688,7 @@ void Round_Optimize(t_tree *tree, int n_round_max)
+       if(!each)
+         {
+           each = freq;
+-          Optimiz_All_Free_Param(tree,(tree->io->quiet)?(0):(tree->verbose > VL2));
++          Optimiz_All_Free_Param(rand, tree,(tree->io->quiet)?(0):(tree->verbose > VL2));
+         }
+ 
+       lk_new = tree->c_lnL;
+@@ -959,7 +959,7 @@ void Optimiz_Ext_Br(t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Optimiz_All_Free_Param(t_tree *tree, int verbose)
++void Optimiz_All_Free_Param(MTRand* rand, t_tree *tree, int verbose)
+ {
+   int  init_both_sides;
+   
+@@ -973,18 +973,18 @@ void Optimiz_All_Free_Param(t_tree *tree, int verbose)
+   Set_Both_Sides(NO,tree);
+   Lk(NULL,tree);
+ 
+-  Optimize_RR_Params(tree,verbose);
++  Optimize_RR_Params(rand,tree,verbose);
+   Optimize_TsTv(tree,verbose);
+   Optimize_Lambda(tree,verbose);
+   Optimiz_Alpha_And_Pinv(tree,verbose);
+   Optimize_Pinv(tree,verbose);
+   Optimize_Alpha(tree,verbose);
+-  Optimize_State_Freqs(tree,verbose);
++  Optimize_State_Freqs(rand,tree,verbose);
+   Optimize_Rmat_Weights(tree,verbose);
+   Optimize_Efrq_Weights(tree,verbose);
+-  Optimize_Free_Rate(tree,verbose);
++  Optimize_Free_Rate(rand,tree,verbose);
+   Optimize_Br_Len_Multiplier(tree,verbose);
+-  Optimize_M4mod(tree, verbose);
++  Optimize_M4mod(rand,tree,verbose);
+ 
+   if(tree->io->print_json_trace == YES) JSON_Tree_Io(tree,tree->io->fp_out_json_trace); 
+   
+@@ -1002,7 +1002,7 @@ void Optimiz_All_Free_Param(t_tree *tree, int verbose)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Optimize_M4mod(t_tree *tree, int verbose)
++void Optimize_M4mod(MTRand* rand, t_tree *tree, int verbose)
+ {
+   if (tree->mod->use_m4mod == YES)
+   {
+@@ -1103,7 +1103,7 @@ void Optimize_M4mod(t_tree *tree, int verbose)
+       {
+         Set_Update_Eigen(YES, tree->mod);
+ 
+-        int *permut = Permutate(tree->mod->r_mat->n_diff_rr);
++        int *permut = Permutate(rand, tree->mod->r_mat->n_diff_rr);
+ 
+         for (i = 0; i < 5; i++)
+           if (permut[i] != 5)
+@@ -2720,7 +2720,7 @@ void Opt_Node_Heights_Recurr_Pre(t_node *a, t_node *d, t_tree *tree)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Optimize_RR_Params(t_tree *mixt_tree, int verbose)
++void Optimize_RR_Params(MTRand* rand, t_tree *mixt_tree, int verbose)
+ {
+   t_tree *tree;
+   t_rmat **r_mat;
+@@ -2782,7 +2782,7 @@ void Optimize_RR_Params(t_tree *mixt_tree, int verbose)
+                       if(failed == YES)  for(i=0;i<tree->mod->r_mat->n_diff_rr;i++) tree->mod->r_mat->rr_val->v[i] = opt_val[i];
+                     }
+ 
+-                  permut = Permutate(tree->mod->r_mat->n_diff_rr);
++                  permut = Permutate(rand, tree->mod->r_mat->n_diff_rr);
+                   
+                   for(i=0;i<tree->mod->r_mat->n_diff_rr;i++) opt_val[i] = tree->mod->r_mat->rr_val->v[i];
+ 
+@@ -3093,7 +3093,7 @@ void Optimize_Alpha(t_tree *mixt_tree, int verbose)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Optimize_Free_Rate(t_tree *mixt_tree, int verbose)
++void Optimize_Free_Rate(MTRand* rand, t_tree *mixt_tree, int verbose)
+ {
+   t_tree *tree;
+   int fast;
+@@ -3177,7 +3177,7 @@ void Optimize_Free_Rate(t_tree *mixt_tree, int verbose)
+                   for(i=0;i<tree->mod->ras->n_catg;i++) tree->mod->ras->gamma_rr_unscaled->v[i] = cpy[pos++];
+                   for(i=0;i<tree->mod->ras->n_catg;i++) tree->mod->ras->gamma_r_proba_unscaled->v[i] = cpy[pos++];
+ 
+-                  permut = Permutate(tree->mod->ras->n_catg);
++                  permut = Permutate(rand, tree->mod->ras->n_catg);
+                   
+                   for(i=0;i<tree->mod->ras->n_catg;++i)
+                     {
+@@ -3369,7 +3369,7 @@ void Optimize_Free_Rate_Weights(t_tree *tree, int fast, int verbose)
+ //////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////
+ 
+-void Optimize_State_Freqs(t_tree *mixt_tree, int verbose)
++void Optimize_State_Freqs(MTRand* rand, t_tree *mixt_tree, int verbose)
+ {
+   /* vect_dbl **freqs; */
+   /* int n_freqs; */
+@@ -3419,7 +3419,7 @@ void Optimize_State_Freqs(t_tree *mixt_tree, int verbose)
+               if(failed == YES) for(i=0;i<tree->mod->ns;i++) tree->mod->e_frq->pi_unscaled->v[i] = opt_val[i];
+ 
+                            
+-              permut = Permutate(tree->mod->ns);
++              permut = Permutate(rand, tree->mod->ns);
+               
+               for(i=0;i<tree->mod->ns;++i)
+                 {

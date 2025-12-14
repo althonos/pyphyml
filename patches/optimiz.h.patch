@@ -1,0 +1,49 @@
+diff --git a/src/optimiz.h b/src/optimiz.h
+index 9ed35e4..80acca7 100644
+--- a/src/optimiz.h
++++ b/src/optimiz.h
+@@ -27,7 +27,7 @@ void   Optimiz_Ext_Br(t_tree *tree);
+ void   Optimize_Param_Parall(t_tree *tree);
+ phydbl Optimize_Branch_Quad(t_tree *tree, calign *cdata, t_edge *b_fcus);
+ void   Optimize_After_Hide(t_tree *tree, calign *cdata, t_node *h);
+-void   Round_Optimize(t_tree *tree, int n_round_max);
++void   Round_Optimize(MTRand* rand, t_tree *tree, int n_round_max);
+ int    Dist_Seq_Brak(phydbl *ax, phydbl *bx, phydbl *cx, phydbl *fa, phydbl *fb,
+                      phydbl *fc, calign *data, int num1, int num2, t_mod *mod);
+ phydbl Dist_Seq_Brent(phydbl ax, phydbl bx, phydbl cx, phydbl tol, phydbl *xmin,
+@@ -62,7 +62,7 @@ int    Alpha_Brak(phydbl *ax, phydbl *bx, phydbl *cx, phydbl *fa, phydbl *fb,
+                   phydbl *fc, t_tree *tree);
+ int    Pinvar_Brak(phydbl *ax, phydbl *bx, phydbl *cx, phydbl *fa, phydbl *fb,
+                    phydbl *fc, t_tree *tree);
+-void   Optimiz_All_Free_Param(t_tree *tree, int verbose);
++void   Optimiz_All_Free_Param(MTRand* rand, t_tree *tree, int verbose);
+ void   Optimiz_RRparam_GTR(t_tree *tree, int num_param);
+ phydbl RRparam_GTR_Golden(phydbl ax, phydbl bx, phydbl cx, phydbl tol,
+                           phydbl *xmin, t_tree *tree, calign *cdata,
+@@ -160,15 +160,15 @@ int Lnsrch_Nonaligned(t_tree *tree, int n, phydbl **xold, phydbl fold,
+                       int *check, short int logt, short int expt,
+                       int is_positive);
+ 
+-void   Optimize_RR_Params(t_tree *mixt_tree, int verbose);
++void   Optimize_RR_Params(MTRand* rand, t_tree *mixt_tree, int verbose);
+ void   Optimize_TsTv(t_tree *mixt_tree, int verbose);
+ void   Optimize_Lambda(t_tree *mixt_tree, int verbose);
+ void   Optimize_Alpha(t_tree *mixt_tree, int verbose);
+ void   Optimize_Pinv(t_tree *mixt_tree, int verbose);
+-void   Optimize_State_Freqs(t_tree *mixt_tree, int verbose);
++void   Optimize_State_Freqs(MTRand* rand, t_tree *mixt_tree, int verbose);
+ void   Optimize_Rmat_Weights(t_tree *mixt_tree, int verbose);
+ void   Optimize_Efrq_Weights(t_tree *mixt_tree, int verbose);
+-void   Optimize_Free_Rate(t_tree *mixt_tree, int verbose);
++void   Optimize_Free_Rate(MTRand* rand, t_tree *mixt_tree, int verbose);
+ void   Optimize_Free_Rate_Weights(t_tree *tree, int fast, int verbose);
+ void   Optimize_Free_Rate_Rr(t_tree *tree, int fast, int verbose);
+ void   Optimize_Br_Len_Multiplier(t_tree *tree, int verbose);
+@@ -177,6 +177,6 @@ phydbl Generic_Brent(phydbl *param, phydbl ax, phydbl cx, phydbl tol,
+                      t_tree *tree);
+ void   Least_Square_Node_Ages(t_tree *tree);
+ void   Optimize_Lvar(t_tree *mixt_tree, int verbose);
+-void   Optimize_M4mod(t_tree *tree, int verbose);
++void   Optimize_M4mod(MTRand* rand, t_tree *tree, int verbose);
+ 
+ #endif
