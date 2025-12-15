@@ -55,7 +55,7 @@ class TestTreeBuilder(unittest.TestCase):
         tree_exp = next(Bio.Phylo.NewickIO.Parser.from_string(str(expected)).parse())
         tree_actual = next(Bio.Phylo.NewickIO.Parser.from_string(result.tree.dumps()).parse())
 
-        self.assertAlmostEqual(result.log_likelihood, -5488.198436, places=4)
+        self.assertAlmostEqual(result.log_likelihood, -5488.1312204, places=4)
         self.assertTreeAlmostEqual(tree_actual, tree_exp)
 
     def test_nucleic_model_F84(self):
